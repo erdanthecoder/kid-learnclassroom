@@ -262,3 +262,36 @@ input:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 1p
   .tx-actions { grid-column: 2 / -1; justify-content: flex-end; }
   .rate-row { grid-template-columns: 1fr 100px; }
 }
+
+/* ---------- account & sync ---------- */
+.btn.google { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-soft); }
+.btn.google svg { flex: none; }
+
+.user-chip {
+  display: flex; align-items: center; gap: 10px;
+  padding: 5px 8px 5px 5px;
+  border: 1px solid var(--line); border-radius: 99px; background: var(--bg-soft);
+}
+.user-chip img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; }
+.user-text { display: flex; flex-direction: column; line-height: 1.25; max-width: 190px; }
+.user-text strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-text small { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sync-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 600; color: var(--muted);
+  padding: 5px 12px; border-radius: 99px;
+  border: 1px solid var(--line); background: var(--bg-soft);
+}
+.sync-pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.sync-pill.is-saved { color: var(--good); }
+.sync-pill.is-syncing { color: var(--accent); }
+.sync-pill.is-offline { color: var(--warn); }
+.sync-pill.is-error { color: var(--bad); }
+
+#account-card .lead strong { color: var(--text); }
+
+@media (max-width: 720px) {
+  .user-text { max-width: 120px; }
+  .topbar-actions { width: 100%; flex-wrap: wrap; }
+}

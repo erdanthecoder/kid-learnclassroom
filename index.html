@@ -18,6 +18,21 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <span class="sync-pill" id="sync-pill" hidden></span>
+      <button type="button" id="sign-in" class="btn google">
+        <svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true">
+          <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.6-9.5 6.6-16.3z"/>
+          <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.6c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.7-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/>
+          <path fill="#FBBC05" d="M11.6 28c-.4-1.3-.7-2.6-.7-4s.3-2.7.7-4v-5.7H4.3C2.8 17.3 2 20.6 2 24s.8 6.7 2.3 9.7l7.3-5.7z"/>
+          <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 6.9 4.3 14.3l7.3 5.7c1.7-5.2 6.6-9.2 12.4-9.2z"/>
+        </svg>
+        Sign in with Google
+      </button>
+      <div class="user-chip" id="user-chip" hidden>
+        <img id="user-avatar" alt="" hidden />
+        <span class="user-text"><strong id="user-name"></strong><small id="user-email"></small></span>
+        <button type="button" id="sign-out" class="btn tiny ghost">Sign out</button>
+      </div>
       <label class="field inline">
         <span>Show totals in</span>
         <select id="base-currency"></select>
@@ -241,11 +256,27 @@
 
     <!-- ================= DATA ================= -->
     <section class="panel" id="panel-data">
+      <article class="card" id="account-card">
+        <header class="card-head">
+          <h2>Your account</h2>
+          <span class="hint" id="account-status"></span>
+        </header>
+        <p class="lead" id="account-lead"></p>
+        <div class="btn-row" id="account-actions"></div>
+      </article>
+
       <article class="card">
-        <header class="card-head"><h2>Your data stays here</h2></header>
+        <header class="card-head"><h2>What is stored, and who can read it</h2></header>
         <p class="lead">
-          Everything lives in this browser only (localStorage). There is no account, no server, and no place
-          to type a card number, PIN, CVV or bank password — MoneyMap does not want them and cannot store them.
+          There is no place anywhere in MoneyMap to type a card number, PIN, CVV, expiry date or bank
+          password. The app never asks for them, and the database has no column that could hold one.
+        </p>
+        <p class="lead">
+          <strong>Signed out:</strong> everything stays in this browser only and nothing is sent anywhere.<br />
+          <strong>Signed in with Google:</strong> your wallets and records are also saved to your own private
+          rows in the MoneyMap database, so they survive a lost phone and follow you to another device.
+          Row level security means those rows can only ever be read by your Google account — another signed-in
+          user asking the database for them gets nothing back, and a signed-out visitor is refused outright.
         </p>
         <div class="btn-row">
           <button type="button" class="btn" id="export-json">Download backup (JSON)</button>
@@ -263,6 +294,7 @@
           <li>In <strong>Rates</strong>, check the numbers so different currencies can be summed into one total.</li>
           <li>In <strong>Spending</strong>, write every record: how much, from which wallet, and <em>where</em> it went.</li>
           <li>The <strong>Overview</strong> then shows your total money, cash vs card, each currency, and your biggest spending places.</li>
+          <li>Optionally <strong>sign in with Google</strong> — the same book then opens on your phone and your laptop, and a lost device costs you nothing.</li>
         </ol>
       </article>
     </section>
@@ -270,6 +302,8 @@
 
   <div id="toast" class="toast" hidden></div>
 
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/cloud.js"></script>
   <script src="assets/js/store.js"></script>
   <script src="assets/js/money.js"></script>
   <script src="assets/js/app.js"></script>

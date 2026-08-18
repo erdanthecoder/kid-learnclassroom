@@ -34,6 +34,7 @@
   function blank() {
     return {
       version: 1,
+      isSample: false,
       baseCurrency: 'USD',
       theme: 'dark',
       currencies: DEFAULT_CURRENCIES.map(function (c) { return { code: c.code, name: c.name, rate: c.rate }; }),
@@ -45,6 +46,7 @@
 
   function sample() {
     var data = blank();
+    data.isSample = true;
     var today = new Date();
     function day(offset) {
       var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset);
@@ -73,6 +75,7 @@
     if (!raw || typeof raw !== 'object') return base;
     var data = {
       version: 1,
+      isSample: raw.isSample === true,
       baseCurrency: typeof raw.baseCurrency === 'string' ? raw.baseCurrency : base.baseCurrency,
       theme: raw.theme === 'light' ? 'light' : 'dark',
       currencies: Array.isArray(raw.currencies) && raw.currencies.length ? raw.currencies : base.currencies,
@@ -155,6 +158,32 @@
     return state;
   }
 
+  /* The example book is only scenery. The moment the user touches anything it
+     becomes their own data, and only then is it worth uploading. */
+  function markReal() {
+    if (state && state.isSample) state.isSample = false;
+  }
+
+  /* Replace the local book with what the account holds. */
+  function adopt(book) {
+    var next = blank();
+    next.baseCurrency = book.baseCurrency || state.baseCurrency;
+    next.theme = book.theme || state.theme;
+    next.categories = book.categories && book.categories.length ? book.categories : state.categories;
+    next.currencies = book.currencies && book.currencies.length ? book.currencies : state.currencies;
+    next.wallets = book.wallets || [];
+    next.transactions = book.transactions || [];
+    if (!next.currencies.some(function (c) { return c.code === ANCHOR; })) {
+      next.currencies.unshift({ code: ANCHOR, name: 'US dollar', rate: 1 });
+    }
+    if (!next.currencies.some(function (c) { return c.code === next.baseCurrency; })) {
+      next.baseCurrency = next.currencies[0].code;
+    }
+    state = next;
+    save();
+    return state;
+  }
+
   global.Store = {
     ANCHOR: ANCHOR,
     uid: uid,
@@ -164,6 +193,8 @@
     replace: replace,
     reset: reset,
     blank: blank,
-    sample: sample
+    sample: sample,
+    markReal: markReal,
+    adopt: adopt
   };
 })(window);

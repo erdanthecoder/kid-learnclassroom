@@ -37,6 +37,7 @@
   }
 
   function commit() {
+    Store.markReal();
     if (!Store.save()) toast('Could not save — browser storage is full or blocked');
     renderAll();
   }
@@ -332,6 +333,7 @@
     renderSpending();
     renderRates();
     renderDataStats();
+    renderAccount();
   }
 
   /* ---------------- wallet form ---------------- */
@@ -372,17 +374,21 @@
       opening: Number($('wallet-balance').value) || 0,
       note: $('wallet-note').value.trim()
     };
+    var saved;
     if (id) {
       var w = Money.wallet(id);
       if (w) { w.name = data.name; w.kind = data.kind; w.currency = data.currency; w.opening = data.opening; w.note = data.note; }
+      saved = w;
       toast('Wallet updated');
     } else {
       data.id = Store.uid();
       state.wallets.push(data);
+      saved = data;
       toast('Wallet added');
     }
     resetWalletForm();
     commit();
+    if (saved) Cloud.saveWallet(saved);
   });
 
   $('wallet-cancel').addEventListener('click', resetWalletForm);
@@ -398,11 +404,14 @@
         ? 'Delete "' + w.name + '" and its ' + used + ' records?'
         : 'Delete "' + w.name + '"?';
       if (!confirm(msg)) return;
+      var orphans = state.transactions.filter(function (t) { return t.walletId === del || t.toWalletId === del; });
       state.wallets = state.wallets.filter(function (x) { return x.id !== del; });
       state.transactions = state.transactions.filter(function (t) { return t.walletId !== del && t.toWalletId !== del; });
       if ($('wallet-id').value === del) resetWalletForm();
       toast('Wallet deleted');
       commit();
+      orphans.forEach(function (t) { Cloud.deleteTx(t.id); });
+      Cloud.deleteWallet(del);
     }
   });
 
@@ -505,19 +514,23 @@
     };
 
     var id = $('tx-id').value;
+    var savedTx;
     if (id) {
       state.transactions.forEach(function (t) {
         if (t.id !== id) return;
         Object.keys(record).forEach(function (k) { t[k] = record[k]; });
+        savedTx = t;
       });
       toast('Record updated');
     } else {
       record.id = Store.uid();
       state.transactions.push(record);
+      savedTx = record;
       toast('Record saved');
     }
     resetTxForm();
     commit();
+    if (savedTx) Cloud.saveTx(savedTx);
   });
 
   $('tx-cancel').addEventListener('click', resetTxForm);
@@ -536,6 +549,7 @@
       if ($('tx-id').value === del) resetTxForm();
       toast('Record deleted');
       commit();
+      Cloud.deleteTx(del);
     }
   }
   $('tx-list').addEventListener('click', handleTxClicks);
@@ -552,6 +566,7 @@
   $('base-currency').addEventListener('change', function () {
     state.baseCurrency = this.value;
     commit();
+    Cloud.saveSettings(state);
   });
 
   $('rates-list').addEventListener('change', function (event) {
@@ -564,6 +579,7 @@
     if (c && baseAnchor) c.rate = value * baseAnchor.rate;
     toast('Rate updated');
     commit();
+    if (c) Cloud.saveCurrency(c);
   });
 
   $('rates-list').addEventListener('click', function (event) {
@@ -573,6 +589,7 @@
     state.currencies = state.currencies.filter(function (c) { return c.code !== code; });
     toast(code + ' removed');
     commit();
+    Cloud.deleteCurrency(code);
   });
 
   $('currency-form').addEventListener('submit', function (event) {
@@ -583,10 +600,12 @@
     if (!code || !(rate > 0)) { toast('Write a code and a rate'); return; }
     if (state.currencies.some(function (c) { return c.code === code; })) { toast(code + ' already exists'); return; }
     var baseAnchor = Money.currency(state.baseCurrency);
-    state.currencies.push({ code: code, name: name, rate: rate * (baseAnchor ? baseAnchor.rate : 1) });
+    var added = { code: code, name: name, rate: rate * (baseAnchor ? baseAnchor.rate : 1) };
+    state.currencies.push(added);
     this.reset();
     toast(code + ' added');
     commit();
+    Cloud.saveCurrency(added);
   });
 
   $('category-form').addEventListener('submit', function (event) {
@@ -598,6 +617,7 @@
     this.reset();
     toast('Category added');
     commit();
+    Cloud.saveSettings(state);
   });
 
   $('category-list').addEventListener('click', function (event) {
@@ -608,6 +628,7 @@
     state.categories = state.categories.filter(function (c) { return c !== name; });
     toast('Category removed');
     commit();
+    Cloud.saveSettings(state);
   });
 
   /* ---------------- data tab ---------------- */
@@ -664,6 +685,7 @@
         resetTxForm();
         renderAll();
         toast('Backup restored');
+        if (Cloud.session()) Cloud.pushAll(state).then(renderAccount);
       } catch (err) {
         toast('That file is not a MoneyMap backup');
       }
@@ -673,12 +695,17 @@
   });
 
   $('reset-all').addEventListener('click', function () {
-    if (!confirm('Erase every wallet and record from this browser?')) return;
+    var signedIn = !!Cloud.session();
+    var question = signedIn
+      ? 'Erase every wallet and record — on this device AND in your account? This cannot be undone.'
+      : 'Erase every wallet and record from this browser?';
+    if (!confirm(question)) return;
     state = Store.reset();
     resetWalletForm();
     resetTxForm();
     renderAll();
     toast('Everything erased');
+    if (signedIn) Cloud.eraseCloud().then(renderAccount);
   });
 
   /* ---------------- tabs & theme ---------------- */
@@ -708,7 +735,158 @@
     state.theme = state.theme === 'dark' ? 'light' : 'dark';
     applyTheme();
     Store.save();
+    Cloud.saveSettings(state);
   });
+
+  /* ---------------- account ---------------- */
+
+  var SYNC_LABEL = {
+    saved: 'Saved to your account',
+    syncing: 'Saving\u2026',
+    offline: 'Offline \u2014 saved on this device',
+    error: 'Not saved yet',
+    'signed-out': ''
+  };
+
+  function renderAccount() {
+    var user = Cloud.configured ? Cloud.user() : null;
+    var status = Cloud.status();
+    var pending = Cloud.pendingCount();
+
+    $('sign-in').hidden = !!user || !Cloud.configured;
+    $('user-chip').hidden = !user;
+    if (user) {
+      $('user-name').textContent = user.name;
+      $('user-email').textContent = user.email;
+      var avatar = $('user-avatar');
+      avatar.hidden = !user.avatar;
+      if (user.avatar) avatar.src = user.avatar;
+    }
+
+    var pill = $('sync-pill');
+    pill.hidden = !user;
+    if (user) {
+      var label = SYNC_LABEL[status] || '';
+      if (status === 'syncing' && pending) label = 'Saving ' + pending + ' change' + (pending === 1 ? '' : 's') + '\u2026';
+      if (status === 'offline' && pending) label = pending + ' change' + (pending === 1 ? '' : 's') + ' waiting for the network';
+      pill.textContent = label;
+      pill.className = 'sync-pill is-' + status;
+      pill.title = Cloud.statusDetail() || label;
+    }
+
+    renderAccountCard(user, status, pending);
+  }
+
+  function renderAccountCard(user, status, pending) {
+    var lead = $('account-lead');
+    var actions = $('account-actions');
+    var note = $('account-status');
+    var onFile = global.location.protocol === 'file:';
+
+    if (!Cloud.configured) {
+      note.textContent = 'no project configured';
+      lead.innerHTML = 'This copy has no Supabase project set, so sign-in is switched off and everything ' +
+        'stays in this browser. Put your own project URL and publishable key in ' +
+        '<code>assets/js/config.js</code> to turn saving on.';
+      actions.innerHTML = '';
+      return;
+    }
+
+    if (!user) {
+      note.textContent = 'not signed in';
+      lead.innerHTML = 'Your book is saved <strong>in this browser only</strong>. Clearing your browser data, ' +
+        'or losing this device, loses it. Sign in with Google to also keep it in your own private rows ' +
+        'in the database \u2014 readable by your account and nothing else.' +
+        (onFile ? '<br /><br /><strong>Note:</strong> the app is open as a local file. Google sign-in needs it ' +
+          'served over http \u2014 run <code>npx http-server .</code> in this folder and open the address it prints.' : '');
+      actions.innerHTML = onFile ? '' :
+        '<button type="button" class="btn primary" id="account-sign-in">Sign in with Google</button>';
+      if (!onFile) $('account-sign-in').addEventListener('click', Cloud.signIn);
+      return;
+    }
+
+    var detail = Cloud.statusDetail();
+    note.textContent = SYNC_LABEL[status] || '';
+    lead.innerHTML = 'Signed in as <strong>' + esc(user.email || user.name) + '</strong>. Every change is written ' +
+      'to this device first and then to your account, so nothing is lost if the network drops.' +
+      (pending ? ' <strong>' + pending + '</strong> change' + (pending === 1 ? ' is' : 's are') + ' still waiting to go up.' : '') +
+      (status === 'error' && detail ? '<br /><br /><strong>Last problem:</strong> ' + esc(detail) : '');
+    actions.innerHTML =
+      '<button type="button" class="btn" id="account-push">Save everything again now</button>' +
+      '<button type="button" class="btn" id="account-pull">Reload from my account</button>' +
+      '<button type="button" class="btn ghost" id="account-sign-out">Sign out</button>';
+
+    $('account-push').addEventListener('click', function () {
+      Cloud.pushAll(state).then(function () { toast('Everything sent to your account'); renderAccount(); });
+    });
+    $('account-pull').addEventListener('click', function () {
+      if (!confirm('Replace what is on this device with the version in your account?')) return;
+      Cloud.pull().then(function (book) {
+        state = Store.adopt(book);
+        applyTheme();
+        resetWalletForm();
+        resetTxForm();
+        renderAll();
+        toast('Loaded from your account');
+      }).catch(function () { toast('Could not reach your account'); });
+    });
+    $('account-sign-out').addEventListener('click', doSignOut);
+  }
+
+  function doSignOut() {
+    if (Cloud.pendingCount() &&
+      !confirm(Cloud.pendingCount() + ' change(s) have not reached your account yet. Sign out anyway?')) return;
+    Cloud.signOut();
+    renderAccount();
+    toast('Signed out \u2014 this device keeps its own copy');
+  }
+
+  $('sign-in').addEventListener('click', Cloud.signIn);
+  $('sign-out').addEventListener('click', doSignOut);
+
+  /* Decide what to do when a session is present: adopt the account's book,
+     upload this device's book, or ask when both hold real data. */
+  function syncOnStart(justSignedIn) {
+    return Cloud.pull().then(function (book) {
+      var localHasData = !state.isSample && (state.wallets.length || state.transactions.length);
+
+      if (book.isEmpty) {
+        if (state.isSample) {
+          state = Store.reset();
+          applyTheme();
+          resetWalletForm();
+          resetTxForm();
+          renderAll();
+          toast('Signed in \u2014 your account is empty, add your wallets');
+          return Cloud.pushAll(state);
+        }
+        return Cloud.pushAll(state).then(function () {
+          toast('This device\u2019s book is now saved to your account');
+        });
+      }
+
+      if (localHasData) {
+        var keepCloud = confirm(
+          'Your account already holds ' + book.wallets.length + ' wallets and ' +
+          book.transactions.length + ' records, and this device has its own unsaved book.\n\n' +
+          'OK \u2014 use the account version (this device\u2019s book is replaced).\n' +
+          'Cancel \u2014 upload this device\u2019s book instead.');
+        if (!keepCloud) {
+          return Cloud.pushAll(state).then(function () { toast('This device\u2019s book was uploaded'); });
+        }
+      }
+
+      state = Store.adopt(book);
+      applyTheme();
+      resetWalletForm();
+      resetTxForm();
+      renderAll();
+      if (justSignedIn) toast('Signed in \u2014 your book is here');
+      return Cloud.flush();
+    }).catch(function () {
+      toast('Signed in, but your account could not be reached \u2014 working on this device');
+    }).then(renderAccount);
+  }
 
   /* ---------------- start ---------------- */
 
@@ -716,5 +894,19 @@
   resetWalletForm();
   resetTxForm();
   renderAll();
-  global.MoneyMap = { state: function () { return state; }, showTab: showTab };
+
+  if (Cloud.configured) {
+    Cloud.onChange(renderAccount);
+    var justSignedIn = Cloud.init();
+    renderAccount();
+    if (Cloud.session()) syncOnStart(justSignedIn);
+  } else {
+    renderAccount();
+  }
+
+  global.MoneyMap = {
+    state: function () { return state; },
+    showTab: showTab,
+    renderAll: renderAll
+  };
 })(window);
