@@ -7,6 +7,8 @@ It is deliberately *not* a vault. There is no field for a card number, PIN, CVV,
 expiry date or bank password, and the database has no column that could hold one.
 You write amounts, not credentials.
 
+**Live site:** https://erdanthecoder.github.io/kid-learnclassroom/
+
 Open `index.html` in a browser and it works immediately, saving to that browser.
 Sign in with Google and the same book follows you to your phone and your laptop.
 
@@ -80,6 +82,20 @@ you want the server itself to be unable to read your spending, the app would nee
 end-to-end encryption with a passphrase — that is a different design, and it means
 a forgotten passphrase destroys the data with no reset possible.
 
+## Publishing the site
+
+`.github/workflows/pages.yml` builds `index.html` + `assets/` and deploys them to
+GitHub Pages on every push.
+
+The very first deploy needs Pages switched on by a repository admin — the workflow's
+own token is not allowed to create the site (`Create Pages site failed: Resource not
+accessible by integration`). One time only:
+
+> **Settings → Pages → Build and deployment → Source: GitHub Actions**
+
+After that every push deploys on its own, and the site lives at
+https://erdanthecoder.github.io/kid-learnclassroom/
+
 ## Turning sign-in on (one-time setup)
 
 The database and the app are ready. Google itself has to be connected by hand,
@@ -92,9 +108,10 @@ because it needs credentials only you can create.
 3. Copy the **Client ID** and **Client secret**.
 4. **Supabase dashboard** → *Authentication* → *Sign In / Providers* → **Google** →
    enable it, paste both values, save.
-5. **Supabase dashboard** → *Authentication* → *URL Configuration* → set the
-   **Site URL** and add every address you will open the app from under *Redirect
-   URLs*, for example `http://localhost:8080` and your GitHub Pages address.
+5. **Supabase dashboard** → *Authentication* → *URL Configuration*:
+   - **Site URL**: `https://erdanthecoder.github.io/kid-learnclassroom/`
+   - **Redirect URLs**: add the same address, plus `http://localhost:8080` if you
+     also want to run it on your own machine.
 
 Google sign-in needs the app served over `http(s)`, not opened as a `file://`
 document. Locally:
@@ -133,6 +150,7 @@ the device and, when signed in, your account rows too.
 ## Files
 
 ```
+.github/workflows/pages.yml the GitHub Pages deploy
 index.html                  all five screens
 assets/css/styles.css       theme tokens, light and dark
 assets/js/config.js         which Supabase project to talk to
