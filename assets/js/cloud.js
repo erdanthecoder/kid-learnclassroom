@@ -143,7 +143,10 @@
       setStatus('error', 'Google sign-in needs the app served over http, not opened as a file');
       return;
     }
-    var redirect = global.location.origin + global.location.pathname;
+    /* Drop a trailing index.html so the address to whitelist in Supabase is the
+       same whether the visitor typed the folder or the file. */
+    var path = global.location.pathname.replace(/index\.html?$/i, '');
+    var redirect = global.location.origin + path;
     global.location.href = cfg.supabaseUrl + '/auth/v1/authorize?provider=google&redirect_to=' +
       encodeURIComponent(redirect);
   }
