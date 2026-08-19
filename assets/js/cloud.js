@@ -11,7 +11,17 @@
  *   firestore.rules refuses any read or write where uid is not the signed-in
  *   person. One account cannot see another's books.
  */
-import { firebaseConfig, firebaseSdkVersion, isConfigured } from './config.js';
+/* Read the config as a namespace rather than named imports: a hand-edited or
+   older config.js that is missing one of these would otherwise fail to link and
+   take the whole app down with it, and config.js is the file people edit. */
+import * as appConfig from './config.js';
+
+const firebaseConfig = appConfig.firebaseConfig || {};
+const firebaseSdkVersion = appConfig.firebaseSdkVersion || '11.0.0';
+const firebaseSdkFallbacks = appConfig.firebaseSdkFallbacks || [];
+const isConfigured = appConfig.isConfigured !== undefined
+  ? Boolean(appConfig.isConfigured)
+  : Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
 
 const listeners = [];
 const snapshotUnsubs = [];
@@ -54,15 +64,29 @@ function setStatus(next, detail = '') {
 
 /* Tests replace the SDK through this hook so the whole sync layer can be
    exercised without a network or a real Firebase project. */
-async function loadSdk() {
-  if (globalThis.__vaultlineFirebaseMock) return globalThis.__vaultlineFirebaseMock;
-  const base = `https://www.gstatic.com/firebasejs/${firebaseSdkVersion}/`;
+async function loadOneVersion(version) {
+  const base = `https://www.gstatic.com/firebasejs/${version}/`;
   const [appMod, authMod, storeMod] = await Promise.all([
     import(/* @vite-ignore */ `${base}firebase-app.js`),
     import(/* @vite-ignore */ `${base}firebase-auth.js`),
     import(/* @vite-ignore */ `${base}firebase-firestore.js`)
   ]);
   return { ...appMod, ...authMod, ...storeMod };
+}
+
+async function loadSdk() {
+  if (globalThis.__vaultlineFirebaseMock) return globalThis.__vaultlineFirebaseMock;
+  const versions = [firebaseSdkVersion, ...(firebaseSdkFallbacks || [])]
+    .filter((v, i, all) => v && all.indexOf(v) === i);
+  let lastError = null;
+  for (const version of versions) {
+    try {
+      return await loadOneVersion(version);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw lastError || new Error('no Firebase SDK version could be loaded');
 }
 
 function startFirestore() {
@@ -376,8 +400,8 @@ function start() {
       sdk = await loadSdk();
     } catch (err) {
       setStatus('error',
-        `Could not load the Firebase SDK (version ${firebaseSdkVersion}). ` +
-        'Check assets/js/config.js.');
+        'Could not reach Google to load the Firebase SDK. Check the connection; ' +
+        'if it persists, set a published version in assets/js/config.js.');
       throw err;
     }
     app = sdk.getApps && sdk.getApps().length ? sdk.getApps()[0] : sdk.initializeApp(firebaseConfig);
