@@ -1,9 +1,27 @@
-/* MoneyMap — which Supabase project this app talks to.
-   The publishable key below is meant to be public: it identifies the project
-   and nothing else. It grants no access on its own — every table is protected
-   by row level security, so rows are only ever readable by the signed-in user
-   who owns them. Swap these two values to point the app at your own project. */
-window.MONEYMAP_CONFIG = {
-  supabaseUrl: 'https://yuvcbylgaqbtoxiueawu.supabase.co',
-  publishableKey: 'sb_publishable_8F5hqDk5cvr3WO80a9OWcQ_ztexuMdt'
+/* Vaultline — which Firebase project this app talks to.
+ *
+ * Paste the config object Firebase gives you under
+ *   Project settings -> General -> Your apps -> Web app -> SDK setup, Config
+ *
+ * These values are meant to be public. They name the project; they do not grant
+ * access. What protects your data is the rule in `firestore.rules`, which lets a
+ * signed-in person touch nothing except their own documents.
+ *
+ * Leave the values empty and Vaultline runs happily without an account, saving
+ * to this browser only.
+ */
+export const firebaseConfig = {
+  apiKey: '',
+  authDomain: '',
+  projectId: '',
+  storageBucket: '',
+  messagingSenderId: '',
+  appId: ''
 };
+
+/* Version of the Firebase Web SDK to load from Google's CDN. If sign-in ever
+ * reports that the SDK could not be loaded, put a version that exists here —
+ * the list is at https://firebase.google.com/support/release-notes/js */
+export const firebaseSdkVersion = '11.0.0';
+
+export const isConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);

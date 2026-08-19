@@ -1,7 +1,7 @@
-# Publishes MoneyMap to GitHub Pages.
+# Publishes Vaultline to GitHub Pages.
 # `enablement: true` switches Pages on the first time this runs, so the site
 # appears without anyone touching repository settings.
-name: Deploy MoneyMap to Pages
+name: Deploy Vaultline to Pages
 
 on:
   push:
@@ -33,7 +33,7 @@ jobs:
       - name: Collect the static site
         run: |
           mkdir -p _site
-          cp index.html _site/
+          cp index.html manifest.webmanifest sw.js _site/
           cp -r assets _site/
           # Pages runs the upload through Jekyll otherwise, which skips folders
           # beginning with an underscore.

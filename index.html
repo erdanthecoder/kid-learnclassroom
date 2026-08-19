@@ -2,310 +2,376 @@
 <html lang="en" data-theme="dark">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MoneyMap — multi-currency spending tracker</title>
-  <meta name="description" content="Track cash and card money in many currencies, and see exactly where it was spent. No card numbers, no bank logins." />
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🗺️</text></svg>" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Vaultline — your money, in every currency</title>
+  <meta name="description" content="A private money manager for cash and card across many currencies. See where your money is and where it went. No card numbers, ever." />
+  <meta name="theme-color" content="#0b0e14" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icon-180.png" />
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brand-mark">🗺️</span>
-      <div>
-        <h1>MoneyMap</h1>
-        <p class="brand-sub">Where your money is, and where it went.</p>
-      </div>
-    </div>
-    <div class="topbar-actions">
-      <span class="sync-pill" id="sync-pill" hidden></span>
-      <button type="button" id="sign-in" class="btn google">
-        <svg viewBox="0 0 48 48" width="17" height="17" aria-hidden="true">
-          <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.6-9.5 6.6-16.3z"/>
-          <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.6c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.7-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/>
-          <path fill="#FBBC05" d="M11.6 28c-.4-1.3-.7-2.6-.7-4s.3-2.7.7-4v-5.7H4.3C2.8 17.3 2 20.6 2 24s.8 6.7 2.3 9.7l7.3-5.7z"/>
-          <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 6.9 4.3 14.3l7.3 5.7c1.7-5.2 6.6-9.2 12.4-9.2z"/>
-        </svg>
-        Sign in with Google
-      </button>
-      <div class="user-chip" id="user-chip" hidden>
-        <img id="user-avatar" alt="" hidden />
-        <span class="user-text"><strong id="user-name"></strong><small id="user-email"></small></span>
-        <button type="button" id="sign-out" class="btn tiny ghost">Sign out</button>
-      </div>
-      <label class="field inline">
-        <span>Show totals in</span>
-        <select id="base-currency"></select>
-      </label>
-      <button type="button" id="theme-toggle" class="btn ghost" title="Switch light / dark">🌙</button>
-    </div>
-  </header>
+  <div class="shell">
+    <header class="topbar">
+      <a class="brand" href="./">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" width="22" height="22">
+            <rect x="3" y="5" width="26" height="22" rx="5" fill="none" stroke="currentColor" stroke-width="2"/>
+            <circle cx="16" cy="16" r="5.5" fill="none" stroke="currentColor" stroke-width="2"/>
+            <path d="M16 10.5v11M10.5 16h11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-text">
+          <strong>Vaultline</strong>
+          <small>where your money is, and where it went</small>
+        </span>
+      </a>
 
-  <nav class="tabs" id="tabs">
-    <button type="button" class="tab is-active" data-tab="overview">Overview</button>
-    <button type="button" class="tab" data-tab="wallets">Wallets</button>
-    <button type="button" class="tab" data-tab="spending">Spending</button>
-    <button type="button" class="tab" data-tab="rates">Rates</button>
-    <button type="button" class="tab" data-tab="data">Data</button>
-  </nav>
+      <div class="topbar-tools">
+        <span class="pill" id="sync-pill" hidden></span>
 
-  <main>
-    <!-- ================= OVERVIEW ================= -->
-    <section class="panel is-active" id="panel-overview">
-      <div class="stat-row">
-        <article class="stat stat-hero">
-          <h2>Total money</h2>
-          <p class="stat-value" id="stat-total">—</p>
-          <p class="stat-note" id="stat-total-note">converted with your rates</p>
-        </article>
-        <article class="stat">
-          <h2>💵 Paper money</h2>
-          <p class="stat-value" id="stat-cash">—</p>
-          <p class="stat-note" id="stat-cash-note"></p>
-        </article>
-        <article class="stat">
-          <h2>💳 On cards</h2>
-          <p class="stat-value" id="stat-card">—</p>
-          <p class="stat-note" id="stat-card-note"></p>
-        </article>
-        <article class="stat">
-          <h2>Spent this month</h2>
-          <p class="stat-value spend" id="stat-month">—</p>
-          <p class="stat-note" id="stat-month-note"></p>
-        </article>
+        <button type="button" id="sign-in" class="btn google" hidden>
+          <svg viewBox="0 0 48 48" width="16" height="16" aria-hidden="true">
+            <path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h11.8c-.5 2.8-2 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.6-9.5 6.6-16.3z"/>
+            <path fill="#34A853" d="M24 46c6 0 11-2 14.6-5.4l-7.1-5.6c-2 1.3-4.5 2.1-7.5 2.1-5.8 0-10.7-3.9-12.4-9.1H4.3v5.7C7.9 41.1 15.4 46 24 46z"/>
+            <path fill="#FBBC05" d="M11.6 28c-.4-1.3-.7-2.6-.7-4s.3-2.7.7-4v-5.7H4.3C2.8 17.3 2 20.6 2 24s.8 6.7 2.3 9.7l7.3-5.7z"/>
+            <path fill="#EA4335" d="M24 10.8c3.3 0 6.2 1.1 8.5 3.3l6.3-6.3C35 4.2 30 2 24 2 15.4 2 7.9 6.9 4.3 14.3l7.3 5.7c1.7-5.2 6.6-9.2 12.4-9.2z"/>
+          </svg>
+          <span>Sign in</span>
+        </button>
+
+        <div class="account-chip" id="user-chip" hidden>
+          <img id="user-avatar" alt="" hidden />
+          <span class="account-text">
+            <strong id="user-name"></strong>
+            <small id="user-email"></small>
+          </span>
+        </div>
+
+        <label class="select-inline">
+          <span class="sr-only">Currency for totals</span>
+          <select id="base-currency" title="Currency used for totals"></select>
+        </label>
+
+        <button type="button" id="theme-toggle" class="icon-btn" title="Light or dark" aria-label="Switch light or dark">
+          <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg>
+        </button>
       </div>
+    </header>
 
-      <div class="grid-2">
+    <nav class="segmented" id="tabs" aria-label="Sections">
+      <button type="button" class="seg is-active" data-tab="vault">Vault</button>
+      <button type="button" class="seg" data-tab="wallets">Wallets</button>
+      <button type="button" class="seg" data-tab="records">Records</button>
+      <button type="button" class="seg" data-tab="budgets">Budgets</button>
+      <button type="button" class="seg" data-tab="rates">Rates</button>
+      <button type="button" class="seg" data-tab="settings">Settings</button>
+    </nav>
+
+    <main>
+      <!-- ===================== VAULT ===================== -->
+      <section class="screen is-active" id="screen-vault">
+        <div class="hero">
+          <div class="hero-main">
+            <p class="hero-label">Everything you have</p>
+            <p class="hero-value" id="total-value">—</p>
+            <p class="hero-sub" id="total-sub"></p>
+          </div>
+          <div class="hero-split">
+            <div class="split-row">
+              <span class="split-key"><i class="dot dot-cash"></i> Paper money</span>
+              <span class="split-val" id="total-cash">—</span>
+            </div>
+            <div class="split-bar"><span id="split-fill"></span></div>
+            <div class="split-row">
+              <span class="split-key"><i class="dot dot-card"></i> On cards</span>
+              <span class="split-val" id="total-card">—</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tiles">
+          <article class="tile">
+            <p class="tile-label">Spent this month</p>
+            <p class="tile-value spend" id="tile-spent">—</p>
+            <p class="tile-note" id="tile-spent-note"></p>
+          </article>
+          <article class="tile">
+            <p class="tile-label">Came in</p>
+            <p class="tile-value earn" id="tile-earned">—</p>
+            <p class="tile-note" id="tile-earned-note"></p>
+          </article>
+          <article class="tile">
+            <p class="tile-label">Kept this month</p>
+            <p class="tile-value" id="tile-saved">—</p>
+            <p class="tile-note" id="tile-saved-note"></p>
+          </article>
+          <article class="tile">
+            <p class="tile-label">Average a day</p>
+            <p class="tile-value" id="tile-perday">—</p>
+            <p class="tile-note" id="tile-perday-note"></p>
+          </article>
+        </div>
+
+        <div class="columns">
+          <article class="card">
+            <header class="card-head">
+              <h2>Money by currency</h2>
+              <span class="muted">cash and card together</span>
+            </header>
+            <div id="currency-bars" class="bars"></div>
+          </article>
+
+          <article class="card">
+            <header class="card-head">
+              <h2>Where it went</h2>
+              <select id="range-select" class="mini">
+                <option value="30">Last 30 days</option>
+                <option value="month" selected>This month</option>
+                <option value="90">Last 90 days</option>
+                <option value="365">Last 12 months</option>
+                <option value="all">All time</option>
+              </select>
+            </header>
+            <div id="category-bars" class="bars"></div>
+          </article>
+        </div>
+
+        <article class="card" id="insight-card">
+          <header class="card-head"><h2>What stands out</h2></header>
+          <ul class="insight-list" id="insight-list"></ul>
+        </article>
+
         <article class="card">
           <header class="card-head">
-            <h2>Money by currency</h2>
-            <span class="hint">cash + card together</span>
+            <h2>Latest records</h2>
+            <button type="button" class="link-btn" data-goto="records">See all</button>
           </header>
-          <div id="by-currency" class="bars"></div>
+          <div id="recent-list" class="records"></div>
+        </article>
+      </section>
+
+      <!-- ===================== WALLETS ===================== -->
+      <section class="screen" id="screen-wallets">
+        <article class="card">
+          <header class="card-head">
+            <h2 id="wallet-form-title">Add a wallet</h2>
+            <span class="muted">a pocket of cash, or money sitting on a card</span>
+          </header>
+          <form id="wallet-form" class="grid-form">
+            <input type="hidden" id="wallet-id" />
+            <label class="field">
+              <span>Name</span>
+              <input id="wallet-name" type="text" placeholder="Cash in my pocket" required maxlength="40" />
+            </label>
+            <label class="field">
+              <span>Kind</span>
+              <select id="wallet-kind">
+                <option value="cash">Paper money — cash</option>
+                <option value="card">Card money</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Currency</span>
+              <select id="wallet-currency"></select>
+            </label>
+            <label class="field">
+              <span id="wallet-balance-label">Money in it now</span>
+              <input id="wallet-balance" type="number" step="0.01" value="0" />
+            </label>
+            <label class="field wide">
+              <span>Note <em>optional — never a card number or PIN</em></span>
+              <input id="wallet-note" type="text" placeholder="salary lands here" maxlength="80" />
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn primary" id="wallet-submit">Add wallet</button>
+              <button type="button" class="btn quiet" id="wallet-cancel" hidden>Cancel</button>
+            </div>
+          </form>
+        </article>
+
+        <div id="wallet-list" class="wallet-grid"></div>
+      </section>
+
+      <!-- ===================== RECORDS ===================== -->
+      <section class="screen" id="screen-records">
+        <article class="card">
+          <header class="card-head">
+            <h2 id="tx-form-title">Write a record</h2>
+            <span class="muted">what you spent, earned, or moved</span>
+          </header>
+          <form id="tx-form" class="grid-form">
+            <input type="hidden" id="tx-id" />
+            <div class="field wide">
+              <span>Type</span>
+              <div class="choice" id="tx-type-choice" role="radiogroup" aria-label="Record type">
+                <button type="button" class="choice-btn is-active" data-type="expense">Spent</button>
+                <button type="button" class="choice-btn" data-type="income">Got money</button>
+                <button type="button" class="choice-btn" data-type="transfer">Moved</button>
+              </div>
+              <input type="hidden" id="tx-type" value="expense" />
+            </div>
+
+            <label class="field">
+              <span id="tx-wallet-label">From wallet</span>
+              <select id="tx-wallet"></select>
+            </label>
+            <label class="field" id="tx-to-wrap" hidden>
+              <span>To wallet</span>
+              <select id="tx-to-wallet"></select>
+            </label>
+            <label class="field">
+              <span>Amount <em id="tx-currency-hint"></em></span>
+              <input id="tx-amount" type="number" step="0.01" min="0" placeholder="0.00" required />
+            </label>
+            <label class="field" id="tx-received-wrap" hidden>
+              <span>Amount that arrived <em id="tx-received-hint"></em></span>
+              <input id="tx-received" type="number" step="0.01" min="0" placeholder="0.00" />
+            </label>
+            <label class="field" id="tx-category-wrap">
+              <span>Category</span>
+              <select id="tx-category"></select>
+            </label>
+            <label class="field" id="tx-place-wrap">
+              <span>Where</span>
+              <input id="tx-place" type="text" placeholder="Globus supermarket" maxlength="60" list="place-suggestions" />
+              <datalist id="place-suggestions"></datalist>
+            </label>
+            <label class="field">
+              <span>Date</span>
+              <input id="tx-date" type="date" required />
+            </label>
+            <label class="field wide">
+              <span>Note <em>optional</em></span>
+              <input id="tx-note" type="text" placeholder="groceries for the week" maxlength="120" />
+            </label>
+            <div class="form-actions">
+              <button type="submit" class="btn primary" id="tx-submit">Save record</button>
+              <button type="button" class="btn quiet" id="tx-cancel" hidden>Cancel</button>
+            </div>
+          </form>
         </article>
 
         <article class="card">
           <header class="card-head">
-            <h2>Where it was spent</h2>
-            <select id="spent-range" class="mini-select">
-              <option value="30">Last 30 days</option>
-              <option value="month" selected>This month</option>
-              <option value="90">Last 90 days</option>
-              <option value="365">Last 12 months</option>
-              <option value="all">All time</option>
-            </select>
+            <h2>All records</h2>
+            <span class="muted" id="records-summary"></span>
           </header>
-          <div id="by-category" class="bars"></div>
+          <div class="filters">
+            <input id="filter-text" type="search" placeholder="Search place, note, category…" />
+            <select id="filter-wallet"><option value="">All wallets</option></select>
+            <select id="filter-category"><option value="">All categories</option></select>
+            <select id="filter-type">
+              <option value="">All types</option>
+              <option value="expense">Spent</option>
+              <option value="income">Got money</option>
+              <option value="transfer">Moved</option>
+            </select>
+          </div>
+          <div id="records-list" class="records"></div>
         </article>
-      </div>
+      </section>
 
-      <article class="card">
-        <header class="card-head">
-          <h2>Latest records</h2>
-          <span class="hint">newest first</span>
-        </header>
-        <div id="recent-list" class="tx-list"></div>
-      </article>
-    </section>
+      <!-- ===================== BUDGETS ===================== -->
+      <section class="screen" id="screen-budgets">
+        <article class="card">
+          <header class="card-head">
+            <h2>Monthly limits</h2>
+            <span class="muted">how much a category may cost each month</span>
+          </header>
+          <form id="budget-form" class="inline-form">
+            <select id="budget-category" aria-label="Category"></select>
+            <input id="budget-limit" type="number" step="0.01" min="0" placeholder="Limit per month" required />
+            <span class="suffix" id="budget-currency-hint"></span>
+            <button type="submit" class="btn primary">Set limit</button>
+          </form>
+          <div id="budget-list" class="budget-list"></div>
+        </article>
+      </section>
 
-    <!-- ================= WALLETS ================= -->
-    <section class="panel" id="panel-wallets">
-      <article class="card">
-        <header class="card-head">
-          <h2 id="wallet-form-title">Add a wallet</h2>
-          <span class="hint">a pocket of cash, or money sitting on a card</span>
-        </header>
-        <form id="wallet-form" class="form-grid">
-          <input type="hidden" id="wallet-id" />
-          <label class="field">
-            <span>Name</span>
-            <input id="wallet-name" type="text" placeholder="Wallet in my pocket" required maxlength="40" />
-          </label>
-          <label class="field">
-            <span>Kind</span>
-            <select id="wallet-kind">
-              <option value="cash">💵 Paper money (cash)</option>
-              <option value="card">💳 Card money</option>
-            </select>
-          </label>
-          <label class="field">
-            <span>Currency</span>
-            <select id="wallet-currency"></select>
-          </label>
-          <label class="field">
-            <span>Money in it now</span>
-            <input id="wallet-balance" type="number" step="0.01" value="0" />
-          </label>
-          <label class="field wide">
-            <span>Note <em>(optional — never write card numbers or PINs)</em></span>
-            <input id="wallet-note" type="text" placeholder="Green card, salary lands here" maxlength="80" />
-          </label>
-          <div class="form-actions">
-            <button type="submit" class="btn primary" id="wallet-submit">Add wallet</button>
-            <button type="button" class="btn ghost" id="wallet-cancel" hidden>Cancel</button>
+      <!-- ===================== RATES ===================== -->
+      <section class="screen" id="screen-rates">
+        <article class="card">
+          <header class="card-head">
+            <h2>Exchange rates</h2>
+            <span class="muted">only used to add currencies into one total</span>
+          </header>
+          <p class="lead">How much <strong>1 unit</strong> of each currency is worth in
+            <strong id="rates-base">USD</strong>. Change them whenever the real rate moves.</p>
+          <div id="rates-list" class="rates"></div>
+          <form id="currency-form" class="inline-form">
+            <input id="new-currency-code" type="text" placeholder="Code, e.g. NOK" maxlength="6" required />
+            <input id="new-currency-name" type="text" placeholder="Name, e.g. Norwegian krone" maxlength="40" />
+            <input id="new-currency-rate" type="number" step="0.000001" min="0" placeholder="1 unit = ? in base" required />
+            <button type="submit" class="btn primary">Add currency</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <header class="card-head"><h2>Categories</h2><span class="muted">where money goes</span></header>
+          <div id="category-chips" class="chips"></div>
+          <form id="category-form" class="inline-form">
+            <input id="new-category" type="text" placeholder="New category, e.g. Books" maxlength="30" required />
+            <button type="submit" class="btn primary">Add category</button>
+          </form>
+        </article>
+      </section>
+
+      <!-- ===================== SETTINGS ===================== -->
+      <section class="screen" id="screen-settings">
+        <article class="card" id="account-card">
+          <header class="card-head">
+            <h2>Your account</h2>
+            <span class="muted" id="account-status"></span>
+          </header>
+          <p class="lead" id="account-lead"></p>
+          <div class="btn-row" id="account-actions"></div>
+        </article>
+
+        <article class="card">
+          <header class="card-head"><h2>What is stored, and who can read it</h2></header>
+          <p class="lead">
+            There is no place anywhere in Vaultline to type a card number, PIN, CVV, expiry date or bank
+            password. It never asks for them, and the database has no field that could hold one.
+          </p>
+          <p class="lead">
+            <strong>Signed out</strong> — everything stays in this browser and nothing is sent anywhere.<br />
+            <strong>Signed in with Google</strong> — your wallets and records are also kept in your own
+            documents in Firebase, so a lost phone costs you nothing and the same book opens on your
+            laptop. The security rule allows a signed-in person to touch their own documents and nothing
+            else.
+          </p>
+          <div class="btn-row">
+            <button type="button" class="btn" id="export-json">Download backup</button>
+            <button type="button" class="btn" id="export-csv">Export records as CSV</button>
+            <label class="btn file-btn">Restore backup<input type="file" id="import-json" accept="application/json,.json" hidden /></label>
+            <button type="button" class="btn danger" id="reset-all">Erase everything</button>
           </div>
-        </form>
-      </article>
+          <p class="muted" id="data-stats"></p>
+        </article>
 
-      <div id="wallet-list" class="wallet-grid"></div>
-    </section>
+        <article class="card">
+          <header class="card-head"><h2>How to use it</h2></header>
+          <ol class="steps">
+            <li>In <strong>Wallets</strong>, add each place your money sits: cash in your pocket, cash at home, a card in som, a card in dollars.</li>
+            <li>In <strong>Rates</strong>, check the numbers so different currencies can be added into one total.</li>
+            <li>In <strong>Records</strong>, write what you spent, from which wallet, and <em>where</em> it went.</li>
+            <li>In <strong>Budgets</strong>, set a monthly limit for the categories you want to keep an eye on.</li>
+            <li><strong>Vault</strong> then shows everything you have, cash against card, each currency, and what stands out this month.</li>
+          </ol>
+        </article>
+      </section>
+    </main>
 
-    <!-- ================= SPENDING ================= -->
-    <section class="panel" id="panel-spending">
-      <article class="card">
-        <header class="card-head">
-          <h2 id="tx-form-title">Write a record</h2>
-          <span class="hint">what you spent, earned, or moved</span>
-        </header>
-        <form id="tx-form" class="form-grid">
-          <input type="hidden" id="tx-id" />
-          <label class="field">
-            <span>Type</span>
-            <select id="tx-type">
-              <option value="expense">➖ Spent</option>
-              <option value="income">➕ Got money</option>
-              <option value="transfer">🔁 Moved between wallets</option>
-            </select>
-          </label>
-          <label class="field">
-            <span id="tx-wallet-label">From wallet</span>
-            <select id="tx-wallet"></select>
-          </label>
-          <label class="field" id="tx-to-wrap" hidden>
-            <span>To wallet</span>
-            <select id="tx-to-wallet"></select>
-          </label>
-          <label class="field">
-            <span>Amount <em id="tx-currency-hint"></em></span>
-            <input id="tx-amount" type="number" step="0.01" min="0" placeholder="0.00" required />
-          </label>
-          <label class="field" id="tx-received-wrap" hidden>
-            <span>Amount received <em id="tx-received-hint"></em></span>
-            <input id="tx-received" type="number" step="0.01" min="0" placeholder="0.00" />
-          </label>
-          <label class="field" id="tx-category-wrap">
-            <span>Category</span>
-            <select id="tx-category"></select>
-          </label>
-          <label class="field" id="tx-place-wrap">
-            <span>Where</span>
-            <input id="tx-place" type="text" placeholder="Globus supermarket" maxlength="60" list="place-suggestions" />
-            <datalist id="place-suggestions"></datalist>
-          </label>
-          <label class="field">
-            <span>Date</span>
-            <input id="tx-date" type="date" required />
-          </label>
-          <label class="field wide">
-            <span>Note <em>(optional)</em></span>
-            <input id="tx-note" type="text" placeholder="Groceries for the week" maxlength="120" />
-          </label>
-          <div class="form-actions">
-            <button type="submit" class="btn primary" id="tx-submit">Save record</button>
-            <button type="button" class="btn ghost" id="tx-cancel" hidden>Cancel</button>
-          </div>
-        </form>
-      </article>
-
-      <article class="card">
-        <header class="card-head">
-          <h2>All records</h2>
-          <span class="hint" id="tx-summary"></span>
-        </header>
-        <div class="filters">
-          <input id="filter-text" type="search" placeholder="Search place, note, category…" />
-          <select id="filter-wallet"><option value="">All wallets</option></select>
-          <select id="filter-category"><option value="">All categories</option></select>
-          <select id="filter-type">
-            <option value="">All types</option>
-            <option value="expense">Spent</option>
-            <option value="income">Got money</option>
-            <option value="transfer">Moved</option>
-          </select>
-        </div>
-        <div id="tx-list" class="tx-list"></div>
-      </article>
-    </section>
-
-    <!-- ================= RATES ================= -->
-    <section class="panel" id="panel-rates">
-      <article class="card">
-        <header class="card-head">
-          <h2>Exchange rates</h2>
-          <span class="hint">used only to add different currencies into one total</span>
-        </header>
-        <p class="lead">Type how much <strong>1 unit</strong> of each currency is worth in <strong id="rates-base">USD</strong>. Change them whenever the real rate moves.</p>
-        <div id="rates-list" class="rates-list"></div>
-        <form id="currency-form" class="inline-form">
-          <input id="new-currency-code" type="text" placeholder="Code (e.g. NOK)" maxlength="6" required />
-          <input id="new-currency-name" type="text" placeholder="Name (e.g. Norwegian krone)" maxlength="40" />
-          <input id="new-currency-rate" type="number" step="0.000001" min="0" placeholder="1 unit = ? in base" required />
-          <button type="submit" class="btn primary">Add currency</button>
-        </form>
-      </article>
-
-      <article class="card">
-        <header class="card-head"><h2>Categories</h2><span class="hint">where money goes</span></header>
-        <div id="category-list" class="chip-list"></div>
-        <form id="category-form" class="inline-form">
-          <input id="new-category" type="text" placeholder="New category (e.g. Books)" maxlength="30" required />
-          <button type="submit" class="btn primary">Add category</button>
-        </form>
-      </article>
-    </section>
-
-    <!-- ================= DATA ================= -->
-    <section class="panel" id="panel-data">
-      <article class="card" id="account-card">
-        <header class="card-head">
-          <h2>Your account</h2>
-          <span class="hint" id="account-status"></span>
-        </header>
-        <p class="lead" id="account-lead"></p>
-        <div class="btn-row" id="account-actions"></div>
-      </article>
-
-      <article class="card">
-        <header class="card-head"><h2>What is stored, and who can read it</h2></header>
-        <p class="lead">
-          There is no place anywhere in MoneyMap to type a card number, PIN, CVV, expiry date or bank
-          password. The app never asks for them, and the database has no column that could hold one.
-        </p>
-        <p class="lead">
-          <strong>Signed out:</strong> everything stays in this browser only and nothing is sent anywhere.<br />
-          <strong>Signed in with Google:</strong> your wallets and records are also saved to your own private
-          rows in the MoneyMap database, so they survive a lost phone and follow you to another device.
-          Row level security means those rows can only ever be read by your Google account — another signed-in
-          user asking the database for them gets nothing back, and a signed-out visitor is refused outright.
-        </p>
-        <div class="btn-row">
-          <button type="button" class="btn" id="export-json">Download backup (JSON)</button>
-          <button type="button" class="btn" id="export-csv">Export records (CSV)</button>
-          <label class="btn file-btn">Restore backup<input type="file" id="import-json" accept="application/json,.json" hidden /></label>
-          <button type="button" class="btn danger" id="reset-all">Erase everything</button>
-        </div>
-        <p class="hint" id="data-stats"></p>
-      </article>
-
-      <article class="card">
-        <header class="card-head"><h2>How to use it</h2></header>
-        <ol class="steps">
-          <li>In <strong>Wallets</strong>, add each place your money sits: cash in your pocket, cash at home, a card in USD, a card in KGS.</li>
-          <li>In <strong>Rates</strong>, check the numbers so different currencies can be summed into one total.</li>
-          <li>In <strong>Spending</strong>, write every record: how much, from which wallet, and <em>where</em> it went.</li>
-          <li>The <strong>Overview</strong> then shows your total money, cash vs card, each currency, and your biggest spending places.</li>
-          <li>Optionally <strong>sign in with Google</strong> — the same book then opens on your phone and your laptop, and a lost device costs you nothing.</li>
-        </ol>
-      </article>
-    </section>
-  </main>
+    <footer class="foot">
+      <span>Vaultline</span>
+      <span id="foot-note"></span>
+    </footer>
+  </div>
 
   <div id="toast" class="toast" hidden></div>
 
-  <script src="assets/js/config.js"></script>
-  <script src="assets/js/cloud.js"></script>
-  <script src="assets/js/store.js"></script>
-  <script src="assets/js/money.js"></script>
-  <script src="assets/js/app.js"></script>
+  <script type="module" src="assets/js/app.js"></script>
 </body>
 </html>

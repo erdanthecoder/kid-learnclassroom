@@ -1,0 +1,25 @@
+rules_version = '2';
+
+/* Vaultline — every document a person owns lives under users/{uid}, and that
+   ownership is the only way in. A signed-in person can read and write their own
+   subtree and nothing else; anyone signed out is refused everywhere.
+
+   Paste this into Firebase console -> Firestore Database -> Rules -> Publish. */
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+
+      // wallets, transactions, currencies, budgets
+      match /{collection}/{docId} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Nothing else in the database is reachable from a client.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
