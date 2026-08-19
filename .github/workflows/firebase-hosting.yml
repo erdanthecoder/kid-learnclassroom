@@ -1,0 +1,38 @@
+# Deploys Vaultline to Firebase Hosting (vaultline-5e3bd.web.app).
+#
+# This needs a service account key in the repository secret
+# FIREBASE_SERVICE_ACCOUNT. Without it the job skips quietly rather than
+# failing every push — GitHub Pages remains the deploy that always runs.
+#
+# To create the secret:
+#   Firebase console -> Project settings -> Service accounts
+#   -> Generate new private key, then paste the whole JSON into
+#   GitHub -> Settings -> Secrets and variables -> Actions -> New secret
+name: Deploy Vaultline to Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: secret
+        run: echo "present=${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}" >> "$GITHUB_OUTPUT"
+
+      - name: Say why this was skipped
+        if: steps.secret.outputs.present != 'true'
+        run: echo "No FIREBASE_SERVICE_ACCOUNT secret set — skipping the Firebase Hosting deploy."
+
+      - name: Deploy to Firebase Hosting
+        if: steps.secret.outputs.present == 'true'
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          projectId: vaultline-5e3bd
+          channelId: live

@@ -8,7 +8,8 @@ It is deliberately not a password vault. There is no field for a card number, PI
 CVV, expiry date or bank password, and the database has no field that could hold
 one. You write amounts, not credentials.
 
-**Live site:** https://erdanthecoder.github.io/kid-learnclassroom/
+**Live site:** https://vaultline-5e3bd.web.app — also at
+https://erdanthecoder.github.io/kid-learnclassroom/
 
 Works immediately with no account, saving to the browser. Sign in with Google and
 the same book follows you to every device, live.
@@ -64,7 +65,8 @@ console step and no redirect URL to paste.
    app → copy the `firebaseConfig` values into
    [`assets/js/config.js`](assets/js/config.js), then commit and push.
 6. **Authentication → Settings → Authorized domains → Add domain** →
-   `erdanthecoder.github.io`.
+   `erdanthecoder.github.io`. Only needed for the GitHub Pages address; the
+   `web.app` one is authorised from the start.
 
 Sign-in then works on the live site. Nothing else changes: signed out, Vaultline
 behaves exactly as before and sends nothing anywhere.
@@ -124,16 +126,43 @@ sign-in to work locally too.
 
 ## Publishing
 
-`.github/workflows/pages.yml` deploys to GitHub Pages on every push to `main`.
-The first deploy needs Pages switched on once by a repository admin — the
+Vaultline is served from two places. They are the same files; use whichever
+address you prefer.
+
+**Firebase Hosting — `vaultline-5e3bd.web.app`.** From the project folder:
+
+```sh
+npx firebase login
+npx firebase deploy
+```
+
+That publishes the site *and* the rules in `firestore.rules`, so it doubles as
+step 4 of the Firebase setup. `firebase.json` and `.firebaserc` are already
+written; nothing to configure.
+
+To have this happen on every push instead, put a service account key
+(Firebase console → Project settings → Service accounts → Generate new private
+key) into the repository secret `FIREBASE_SERVICE_ACCOUNT`.
+`.github/workflows/firebase-hosting.yml` then deploys automatically, and skips
+quietly until that secret exists.
+
+**GitHub Pages — `erdanthecoder.github.io/kid-learnclassroom/`.**
+`.github/workflows/pages.yml` deploys on every push to `main`, no secret needed.
+The first deploy needs Pages switched on once by a repository admin, because the
 workflow's own token may not create the site:
 
 > **Settings → Pages → Build and deployment → Source: GitHub Actions**
+
+One practical difference: `vaultline-5e3bd.web.app` and
+`vaultline-5e3bd.firebaseapp.com` are authorised for sign-in automatically,
+while `erdanthecoder.github.io` has to be added by hand under
+**Authentication → Settings → Authorized domains**.
 
 ## Files
 
 ```
 index.html                   the six screens
+firebase.json, .firebaserc   Firebase Hosting and rules deploy
 manifest.webmanifest, sw.js  installable app, works offline
 firestore.rules              the rule that keeps accounts apart
 assets/css/styles.css        design tokens, dark and light
@@ -142,7 +171,7 @@ assets/js/cloud.js           Google sign-in, live sync, offline writes
 assets/js/store.js           data model, defaults, validation, device copy
 assets/js/money.js           conversion, balances, spending, budgets, insights
 assets/js/app.js             screens, forms, events
-.github/workflows/pages.yml  the deploy
+.github/workflows/            the two deploys, Pages and Firebase Hosting
 ```
 
 Plain HTML, CSS and modern JavaScript. No framework and no build step; the only
