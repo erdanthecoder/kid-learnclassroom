@@ -140,6 +140,35 @@ That publishes the site *and* the rules in `firestore.rules`, so it doubles as
 step 4 of the Firebase setup. `firebase.json` and `.firebaserc` are already
 written; nothing to configure.
 
+### A shorter address
+
+A Firebase project can serve several sites, each with its own `web.app`
+subdomain, and site names are handed out separately from project names — so
+`vaultline` may still be free even though the project had to be called
+`vaultline-5e3bd`.
+
+**Hosting → Add another site → site ID `vaultline`.** If Firebase accepts it,
+`vaultline.web.app` is yours; add a second block to the `hosting` array in
+`firebase.json` and deploy again:
+
+```json
+{
+  "site": "vaultline",
+  "public": ".",
+  "ignore": ["firebase.json", ".firebaserc", "**/.*", "**/node_modules/**", "README.md", "firestore.rules"],
+  "cleanUrls": true
+}
+```
+
+Both addresses then serve the same app, and both are authorised for sign-in
+automatically.
+
+For a domain of your own — `vaultline.app` and the like — buy the name, then
+**Hosting → Add custom domain**; Firebase issues the certificate and prints the
+DNS records to add at your registrar. Remember to add that domain under
+**Authentication → Settings → Authorized domains** too, or sign-in will refuse
+it.
+
 To have this happen on every push instead, put a service account key
 (Firebase console → Project settings → Service accounts → Generate new private
 key) into the repository secret `FIREBASE_SERVICE_ACCOUNT`.
