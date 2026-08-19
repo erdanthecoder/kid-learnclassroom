@@ -8,8 +8,11 @@ It is deliberately not a password vault. There is no field for a card number, PI
 CVV, expiry date or bank password, and the database has no field that could hold
 one. You write amounts, not credentials.
 
-**Live site:** https://vaultline-5e3bd.web.app — also at
-https://erdanthecoder.github.io/kid-learnclassroom/
+**Live site:** https://erdanthecoder.github.io/kid-learnclassroom/
+
+Firebase Hosting is optional and is not used by default. Vaultline needs Firebase
+only for sign-in and saving; the site itself is served by GitHub Pages, which
+deploys on every push with nothing to run by hand.
 
 Works immediately with no account, saving to the browser. Sign in with Google and
 the same book follows you to every device, live.
@@ -126,10 +129,13 @@ sign-in to work locally too.
 
 ## Publishing
 
-Vaultline is served from two places. They are the same files; use whichever
-address you prefer.
+GitHub Pages serves the site and needs nothing from you. Firebase Hosting is an
+optional second home for the same files, worth it only if you want the shorter
+`web.app` address.
 
-**Firebase Hosting — `vaultline-5e3bd.web.app`.** From the project folder:
+**Firebase Hosting — `vaultline-5e3bd.web.app`, optional.** Nothing is published
+there until you run a deploy; until then the console shows *"Waiting for your
+first release"*. From the project folder:
 
 ```sh
 npx firebase login
@@ -175,8 +181,9 @@ key) into the repository secret `FIREBASE_SERVICE_ACCOUNT`.
 `.github/workflows/firebase-hosting.yml` then deploys automatically, and skips
 quietly until that secret exists.
 
-**GitHub Pages — `erdanthecoder.github.io/kid-learnclassroom/`.**
-`.github/workflows/pages.yml` deploys on every push to `main`, no secret needed.
+**GitHub Pages — `erdanthecoder.github.io/kid-learnclassroom/`, the live one.**
+`.github/workflows/pages.yml` deploys on every push to `main`, no secret needed
+and no command to run.
 The first deploy needs Pages switched on once by a repository admin, because the
 workflow's own token may not create the site:
 
