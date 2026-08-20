@@ -3,6 +3,7 @@
 import * as Store from './store.js';
 import * as Money from './money.js';
 import { Cloud } from './cloud.js';
+import { search as searchCurrencies, lookup as lookupCurrency } from './currencies.js';
 
 const $ = (id) => document.getElementById(id);
 let state = Store.load();
@@ -57,7 +58,11 @@ function fillCurrencySelects() {
   for (const id of ['base-currency', 'wallet-currency']) {
     const el = $(id);
     const keep = el.value;
-    el.innerHTML = options;
+    /* The wallet form gets a way out to the finder, so a currency you have not
+       added yet is never a dead end. */
+    el.innerHTML = id === 'wallet-currency'
+      ? `${options}<option value="__find">+ Add another currency…</option>`
+      : options;
     el.value = state.currencies.some((c) => c.code === keep) ? keep : state.baseCurrency;
   }
   $('base-currency').value = state.baseCurrency;
@@ -404,6 +409,7 @@ function renderBudgets() {
 
 function renderRates() {
   $('rates-base').textContent = state.baseCurrency;
+  $('rates-count').textContent = `— ${state.currencies.length} of 150+, add any you need`;
   const sorted = state.currencies.slice().sort((a, b) => {
     if (a.code === state.baseCurrency) return -1;
     if (b.code === state.baseCurrency) return 1;
@@ -519,6 +525,14 @@ $('wallet-form').addEventListener('submit', (event) => {
 });
 
 $('wallet-cancel').addEventListener('click', resetWalletForm);
+
+$('wallet-currency').addEventListener('change', function () {
+  if (this.value !== '__find') return;
+  this.value = state.baseCurrency;
+  showTab('rates');
+  $('currency-search').focus();
+  toast('Find the currency, then come back to the wallet');
+});
 
 $('wallet-list').addEventListener('click', (event) => {
   const edit = event.target.getAttribute('data-edit-wallet');
@@ -758,19 +772,71 @@ $('rates-list').addEventListener('click', (event) => {
   Cloud.deleteCurrency(code);
 });
 
-$('currency-form').addEventListener('submit', function (event) {
-  event.preventDefault();
-  const code = $('new-currency-code').value.trim().toUpperCase();
-  const name = $('new-currency-name').value.trim() || code;
-  const rate = Number($('new-currency-rate').value);
-  if (!code || !(rate > 0)) { toast('Write a code and a rate'); return; }
-  if (state.currencies.some((c) => c.code === code)) { toast(`${code} is already there`); return; }
+/* ---------------- the currency finder ---------------- */
 
+/* What one unit of a catalogue currency is worth in the currency totals are
+   shown in. The catalogue is quoted in dollars, and so is every stored rate. */
+function catalogueRateInBase(entry) {
   const baseAnchor = Money.currency(state.baseCurrency);
-  const added = { code, name, rate: rate * (baseAnchor ? baseAnchor.rate : 1) };
+  return entry.rate / (baseAnchor && baseAnchor.rate > 0 ? baseAnchor.rate : 1);
+}
+
+function renderCurrencyResults() {
+  const query = $('currency-search').value.trim();
+  const host = $('currency-results');
+
+  if (!query) {
+    host.hidden = true;
+    host.innerHTML = '';
+    return;
+  }
+
+  const matches = searchCurrencies(query);
+  host.hidden = false;
+
+  if (!matches.length) {
+    host.innerHTML = '<p class="finder-empty">Nothing matches that. Try the three-letter code, ' +
+      'or part of the country or currency name.</p>';
+    return;
+  }
+
+  host.innerHTML = matches.map((c) => {
+    const already = state.currencies.some((x) => x.code === c.code);
+    const worth = catalogueRateInBase(c);
+    const hint = already
+      ? 'already added'
+      : `1 ${c.code} ≈ ${Number(worth.toPrecision(4))} ${state.baseCurrency}`;
+    return `
+      <button type="button" class="finder-row${already ? ' is-added' : ''}"
+        ${already ? 'disabled' : `data-add-currency="${esc(c.code)}"`}>
+        <span class="finder-code">${esc(c.code)}</span>
+        <span class="finder-name">${esc(c.name)}</span>
+        <span class="finder-hint">${esc(hint)}</span>
+      </button>`;
+  }).join('');
+}
+
+$('currency-search').addEventListener('input', renderCurrencyResults);
+$('currency-search').addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    $('currency-search').value = '';
+    renderCurrencyResults();
+  }
+});
+
+$('currency-results').addEventListener('click', (event) => {
+  const button = event.target.closest('[data-add-currency]');
+  if (!button) return;
+  const code = button.getAttribute('data-add-currency');
+  const entry = lookupCurrency(code);
+  if (!entry) return;
+  if (state.currencies.some((c) => c.code === entry.code)) { toast(`${entry.code} is already there`); return; }
+
+  const added = { code: entry.code, name: entry.name, rate: entry.rate };
   state.currencies.push(added);
-  this.reset();
-  toast(`${code} added`);
+  $('currency-search').value = '';
+  renderCurrencyResults();
+  toast(`${entry.code} added — check its rate below`);
   commit();
   Cloud.saveCurrency(added);
 });

@@ -30,9 +30,13 @@ and card money, kept apart so you can see the split at a glance.
   currencies you can type the amount that actually arrived, so a bad rate at the
   counter is recorded truthfully. Moves are never counted as spending.
 
-**Many currencies** — each wallet always shows its own currency. Totals convert
-into whichever currency you choose in the header, using rates you control on the
-**Rates** screen. Ten come pre-filled; add any others.
+**Every currency** — 150+ of them, but the Rates screen never becomes a wall of
+names. It lists only the ones you actually use; to add another you type into the
+search box — a code like `NOK`, or part of a name like `som` or `franc` — and pick
+it from a handful of matches. Each wallet always shows its own currency, and
+totals convert into whichever one you choose in the header, using rates you
+control. The rates that ship with the app are starting points, not live data;
+correct any of them on the Rates screen.
 
 **Budgets** — a monthly limit per category, with a bar that turns amber near the
 limit and red past it. A limit keeps the currency it was written in, so switching
@@ -205,6 +209,7 @@ assets/css/styles.css        design tokens, dark and light
 assets/js/config.js          your Firebase project (empty by default)
 assets/js/cloud.js           Google sign-in, live sync, offline writes
 assets/js/store.js           data model, defaults, validation, device copy
+assets/js/currencies.js      the searchable catalogue of world currencies
 assets/js/money.js           conversion, balances, spending, budgets, insights
 assets/js/app.js             screens, forms, events
 .github/workflows/            the two deploys, Pages and Firebase Hosting

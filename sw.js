@@ -10,6 +10,7 @@ const SHELL = [
   'assets/js/store.js',
   'assets/js/money.js',
   'assets/js/cloud.js',
+  'assets/js/currencies.js',
   'assets/js/config.js',
   'assets/icon.svg',
   'manifest.webmanifest'
