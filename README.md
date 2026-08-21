@@ -50,6 +50,14 @@ than last month, and what the month will cost at the current pace.
 **Records screen** — search and filter by wallet, category and type; edit or
 delete anything. On a phone, tapping a row opens it.
 
+**It moves** — balances count up rather than blink into place, bars sweep out to
+their length, the section pill glides to where you tapped, screens slide in from
+the side you came from, and panels and rows arrive one after another. A sheen
+crosses the balance card and your card wallets. Nothing moves for the sake of it:
+entrance animations run only when a screen is opened, so redrawing after every
+keystroke never makes the page flicker, and **changing the display currency snaps
+instead of counting** — the frames in between would show an amount you do not have.
+
 **Built for a thumb** — the section bar stays put as a screen scrolls, a quick-add
 button is always within reach, and an empty screen says what to do next instead of
 just reporting that there is nothing. Keyboard focus is always visible, and every

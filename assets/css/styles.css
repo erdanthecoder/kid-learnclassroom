@@ -144,7 +144,20 @@ h1, h2, h3 { margin: 0; font-weight: 640; letter-spacing: -.015em; }
   transition: background .15s, color .15s;
 }
 .seg:hover { color: var(--text); }
-.seg.is-active { background: var(--gold-soft); color: var(--gold); }
+.seg.is-active { color: var(--gold); }
+
+.seg-pill {
+  position: absolute;
+  top: 5px; bottom: 5px; left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--gold-soft);
+  border: 1px solid color-mix(in srgb, var(--gold) 22%, transparent);
+  z-index: 0;
+  transition: transform .34s cubic-bezier(.22, .8, .28, 1),
+              width .34s cubic-bezier(.22, .8, .28, 1);
+}
+.seg { position: relative; z-index: 1; }
 
 /* ---------------- screens & cards ---------------- */
 
@@ -618,14 +631,16 @@ input[type="range"]::-moz-range-thumb {
 
 /* ---------------- motion and focus ---------------- */
 
-.screen.is-active { animation: rise .2s ease-out both; }
-@keyframes rise {
-  from { opacity: 0; transform: translateY(7px); }
-  to { opacity: 1; transform: none; }
-}
+/* ================= motion =================
+   Two rules hold this together. Entrance animations only run inside
+   .is-entering, which is added when a screen is opened and taken off again
+   afterwards — so redrawing after every keystroke never makes the page flicker.
+   And everything here is switched off for anyone who asks for less motion. */
 
-.btn:active, .seg:active, .choice-btn:active { transform: translateY(1px); }
-.btn, .seg, .choice-btn, .icon-btn { transition: transform .1s ease, border-color .15s, color .15s, background .15s; }
+.btn:active, .seg:active, .choice-btn:active { transform: translateY(1px) scale(.985); }
+.btn, .seg, .choice-btn, .icon-btn {
+  transition: transform .12s cubic-bezier(.22, .8, .28, 1), border-color .18s, color .18s, background .18s, box-shadow .18s;
+}
 
 :focus-visible {
   outline: 2px solid var(--gold);
@@ -633,9 +648,142 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 8px;
 }
 
+/* The app arrives rather than appears. Deliberately a CSS animation and not a
+   JS-set class: if a script ever fails, the page must still be visible. */
+body { animation: app-in .5s ease both; }
+@keyframes app-in {
+  from { opacity: 0; transform: translate3d(0, 4px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* whole screen slides in from the side you came from */
+.screen.is-entering.from-right { animation: screen-right .38s cubic-bezier(.22, .8, .28, 1) both; }
+.screen.is-entering.from-left { animation: screen-left .38s cubic-bezier(.22, .8, .28, 1) both; }
+@keyframes screen-right {
+  from { opacity: 0; transform: translate3d(26px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes screen-left {
+  from { opacity: 0; transform: translate3d(-26px, 0, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* its panels follow, one after another */
+.screen.is-entering > * { animation: lift .5s cubic-bezier(.22, .8, .28, 1) both; }
+.screen.is-entering > *:nth-child(1) { animation-delay: .04s; }
+.screen.is-entering > *:nth-child(2) { animation-delay: .10s; }
+.screen.is-entering > *:nth-child(3) { animation-delay: .16s; }
+.screen.is-entering > *:nth-child(4) { animation-delay: .22s; }
+.screen.is-entering > *:nth-child(5) { animation-delay: .28s; }
+@keyframes lift {
+  from { opacity: 0; transform: translate3d(0, 16px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* and the rows inside them */
+.screen.is-entering .bar,
+.screen.is-entering .record,
+.screen.is-entering .wallet,
+.screen.is-entering .budget,
+.screen.is-entering .tile,
+.screen.is-entering .insight-list li {
+  animation: row-in .46s cubic-bezier(.22, .8, .28, 1) both;
+  animation-delay: calc(160ms + var(--i, 0) * 45ms);
+}
+.screen.is-entering .tile:nth-child(1) { --i: 0; }
+.screen.is-entering .tile:nth-child(2) { --i: 1; }
+.screen.is-entering .tile:nth-child(3) { --i: 2; }
+.screen.is-entering .tile:nth-child(4) { --i: 3; }
+.screen.is-entering .insight-list li:nth-child(1) { --i: 0; }
+.screen.is-entering .insight-list li:nth-child(2) { --i: 1; }
+.screen.is-entering .insight-list li:nth-child(3) { --i: 2; }
+.screen.is-entering .insight-list li:nth-child(4) { --i: 3; }
+@keyframes row-in {
+  from { opacity: 0; transform: translate3d(0, 12px, 0); }
+  to { opacity: 1; transform: none; }
+}
+
+/* bars sweep out to their length */
+.bar-fill, .budget-fill, .split-bar span {
+  transform-origin: left center;
+  transition: width .55s cubic-bezier(.22, .8, .28, 1);
+}
+.screen.is-entering .bar-fill,
+.screen.is-entering .budget-fill,
+.screen.is-entering .split-bar span {
+  animation: sweep .8s cubic-bezier(.22, .8, .28, 1) both;
+  animation-delay: calc(240ms + var(--i, 0) * 45ms);
+}
+@keyframes sweep { from { transform: scaleX(0); } to { transform: none; } }
+
+/* a slow sheen across the balance card, and across a card wallet */
+.hero { position: relative; overflow: hidden; }
+.hero-sheen, .wallet-sheen {
+  position: absolute; inset: 0;
+  pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 38%,
+    color-mix(in srgb, var(--gold) 16%, transparent) 50%,
+    transparent 62%);
+  transform: translateX(-120%);
+  animation: sheen 7s ease-in-out 1.2s infinite;
+}
+.wallet-sheen { animation-duration: 9s; opacity: .7; }
+.wallet:not(.is-card) .wallet-sheen { display: none; }
+@keyframes sheen {
+  0% { transform: translateX(-120%); }
+  55%, 100% { transform: translateX(120%); }
+}
+
+/* things you can touch answer back */
+.tile, .wallet, .card, .budget, .rate {
+  transition: transform .22s cubic-bezier(.22, .8, .28, 1), box-shadow .22s, border-color .22s;
+}
+.tile:hover, .wallet:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--gold) 32%, var(--line));
+  box-shadow: 0 14px 30px color-mix(in srgb, var(--bg) 60%, transparent);
+}
+.record { transition: background .18s, padding-left .18s; border-radius: 10px; }
+.record:hover { background: color-mix(in srgb, var(--gold) 6%, transparent); padding-left: 8px; }
+.finder-row { transition: background .16s, padding-left .16s; }
+.finder-row:hover:not(:disabled) { padding-left: 18px; }
+
+.toast { animation: toast-in .34s cubic-bezier(.22, .8, .28, 1) both; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 14px) scale(.96); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+.fab { animation: fab-in .5s cubic-bezier(.34, 1.4, .5, 1) .5s both; }
+@keyframes fab-in {
+  from { opacity: 0; transform: scale(.4) translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+
+.empty-state { animation: lift .5s cubic-bezier(.22, .8, .28, 1) both; }
+.empty-mark { animation: pulse 3.4s ease-in-out infinite; }
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .screen.is-active { animation: none; }
-  .fab, .btn, .seg, .choice-btn, .icon-btn { transition: none; }
+  body { animation: none; }
+  .screen, .screen.is-entering, .screen.is-entering > *,
+  .screen.is-entering .bar, .screen.is-entering .record,
+  .screen.is-entering .wallet, .screen.is-entering .budget,
+  .screen.is-entering .tile, .screen.is-entering .insight-list li,
+  .screen.is-entering .bar-fill, .screen.is-entering .budget-fill,
+  .screen.is-entering .split-bar span,
+  .hero-sheen, .wallet-sheen, .toast, .fab, .empty-state, .empty-mark {
+    animation: none !important;
+  }
+  .fab, .btn, .seg, .choice-btn, .icon-btn, .tile, .wallet, .card,
+  .bar-fill, .budget-fill, .split-bar span, .seg-pill, .record {
+    transition: none !important;
+  }
+  .tile:hover, .wallet:hover, .record:hover { transform: none; padding-left: 0; }
 }
 
 /* ---------------- narrow screens ---------------- */

@@ -30,6 +30,41 @@ function esc(value) {
   ));
 }
 
+const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* Money should land rather than blink into place. Each figure counts from
+   whatever it was showing to its new value, so a change is felt, not missed. */
+function setNumber(el, value, code) {
+  const shown = code || state.baseCurrency;
+  const render = (v) => (code ? Money.format(v, code) : Money.formatBase(v));
+
+  /* First paint counts up from zero — that is the moment worth animating.
+     Changing the display currency is the one case that must NOT count: the
+     figures either side are in different money, so the in-between frames would
+     read as an amount you do not have. Those snap instead. */
+  const sameCurrency = el.__code === undefined || el.__code === shown;
+  const from = typeof el.__value === 'number' && sameCurrency ? el.__value : 0;
+  el.__value = value;
+  el.__code = shown;
+
+  if (!sameCurrency || from === value || reduceMotion()) {
+    cancelAnimationFrame(el.__frame);
+    el.textContent = render(value);
+    return;
+  }
+
+  cancelAnimationFrame(el.__frame);
+  const started = performance.now();
+  const span = value - from;
+  const step = (now) => {
+    const t = Math.min(1, (now - started) / 620);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = render(from + span * eased);
+    if (t < 1) el.__frame = requestAnimationFrame(step);
+  };
+  el.__frame = requestAnimationFrame(step);
+}
+
 const today = () => new Date().toISOString().slice(0, 10);
 
 function niceDate(iso) {
@@ -135,29 +170,29 @@ function renderVault() {
   const t = Money.totals();
   const info = Money.insights();
 
-  $('total-value').textContent = Money.formatBase(t.total);
+  setNumber($('total-value'), t.total);
   $('total-sub').textContent = state.wallets.length
     ? `${state.wallets.length} wallets · ${Object.keys(t.byCurrency).length} currencies`
     : 'add your first wallet to begin';
-  $('total-cash').textContent = Money.formatBase(t.cash);
-  $('total-card').textContent = Money.formatBase(t.card);
+  setNumber($('total-cash'), t.cash);
+  setNumber($('total-card'), t.card);
 
   const positive = Math.max(t.cash, 0) + Math.max(t.card, 0);
   const cashShare = positive > 0 ? (Math.max(t.cash, 0) / positive) * 100 : 50;
   $('split-fill').style.width = `${cashShare}%`;
 
-  $('tile-spent').textContent = Money.formatBase(info.spentThis);
+  setNumber($('tile-spent'), info.spentThis);
   $('tile-spent-note').textContent = info.recordCount
     ? `${info.recordCount} record${info.recordCount === 1 ? '' : 's'} this month`
     : 'nothing written yet this month';
 
-  $('tile-earned').textContent = Money.formatBase(info.earnedThis);
+  setNumber($('tile-earned'), info.earnedThis);
   $('tile-earned-note').textContent = 'money in, this month';
 
-  $('tile-saved').textContent = Money.formatBase(info.saved);
+  setNumber($('tile-saved'), info.saved);
   $('tile-saved-note').textContent = info.saved >= 0 ? 'more came in than went out' : 'more went out than came in';
 
-  $('tile-perday').textContent = Money.formatBase(info.perDay);
+  setNumber($('tile-perday'), info.perDay);
   $('tile-perday-note').textContent = info.daysLeft > 0
     ? `about ${Money.formatBase(info.projected)} by month end`
     : 'the month is done';
@@ -184,13 +219,13 @@ function renderCurrencyBars(t) {
     return;
   }
   const max = Math.max(...rows.map((r) => Math.abs(r.base)), 1);
-  host.innerHTML = rows.map((row) => {
+  host.innerHTML = rows.map((row, i) => {
     const width = Math.max(2, Math.round((Math.abs(row.base) / max) * 100));
     const parts = [];
     if (row.cash) parts.push(`Cash ${Money.format(row.cash, row.currency)}`);
     if (row.card) parts.push(`Card ${Money.format(row.card, row.currency)}`);
     return `
-      <div class="bar">
+      <div class="bar" style="--i:${i}">
         <div class="bar-name">${esc(row.currency)}<small>${esc(parts.join('  ·  ') || 'empty')}</small></div>
         <div class="bar-value">${esc(Money.format(row.raw, row.currency))}<small>= ${esc(Money.formatBase(row.base))}</small></div>
         <div class="bar-track"><div class="bar-fill${row.card ? '' : ' green'}" style="width:${width}%"></div></div>
@@ -207,13 +242,13 @@ function renderCategoryBars() {
   }
   const max = rows[0].base || 1;
   const total = rows.reduce((sum, r) => sum + r.base, 0);
-  host.innerHTML = rows.map((row) => {
+  host.innerHTML = rows.map((row, i) => {
     const width = Math.max(2, Math.round((row.base / max) * 100));
     const share = total ? (row.base / total) * 100 : 0;
     const shareText = share > 0 && share < 1 ? '<1%' : `${Math.round(share)}%`;
     const sub = row.topPlace ? `mostly ${row.topPlace}` : `${row.count} records`;
     return `
-      <div class="bar">
+      <div class="bar" style="--i:${i}">
         <div class="bar-name">${esc(row.label)}<small>${esc(sub)}</small></div>
         <div class="bar-value">${esc(Money.formatBase(row.base))}<small>${shareText}</small></div>
         <div class="bar-track"><div class="bar-fill rose" style="width:${width}%"></div></div>
@@ -264,13 +299,14 @@ function renderWallets() {
       { label: 'Name your first wallet', attr: 'data-focus="wallet-name"' });
     return;
   }
-  host.innerHTML = state.wallets.map((w) => {
+  host.innerHTML = state.wallets.map((w, i) => {
     const balance = Money.balanceOf(w.id);
     const converted = w.currency !== state.baseCurrency
       ? `<div class="wallet-converted">≈ ${esc(Money.formatBase(Money.convert(balance, w.currency)))}</div>`
       : '';
     return `
-      <article class="wallet ${w.kind === 'card' ? 'is-card' : ''}">
+      <article class="wallet ${w.kind === 'card' ? 'is-card' : ''}" style="--i:${i}">
+        <span class="wallet-sheen" aria-hidden="true"></span>
         <div class="wallet-top">
           <span class="wallet-name">${esc(w.name)}</span>
           <span class="wallet-kind">${w.kind === 'card' ? 'Card' : 'Cash'}</span>
@@ -330,7 +366,7 @@ function renderRecords(host, list, emptyText) {
       : `<p class="empty">${esc(emptyText)}</p>`;
     return;
   }
-  host.innerHTML = list.map((t) => {
+  host.innerHTML = list.map((t, i) => {
     const w = Money.wallet(t.walletId);
     const code = w ? w.currency : state.baseCurrency;
     const d = describe(t);
@@ -340,7 +376,7 @@ function renderRecords(host, list, emptyText) {
       ? `<small>${esc(Money.formatBase(Money.convert(t.amount, code)))}</small>`
       : '';
     return `
-      <div class="record">
+      <div class="record" style="--i:${i}">
         <span class="record-icon ${tone}">${mark}</span>
         <div class="record-main" data-edit-tx="${esc(t.id)}" role="button" tabindex="0"
           aria-label="Edit ${esc(d.title)}">
@@ -406,7 +442,7 @@ function renderBudgets() {
       { label: 'Set a limit', attr: 'data-focus="budget-limit"' });
     return;
   }
-  host.innerHTML = rows.map((b) => {
+  host.innerHTML = rows.map((b, i) => {
     const width = Math.min(100, Math.round(b.share * 100));
     const stateText = b.state === 'over'
       ? `over by ${Money.formatBase(-b.left)}`
@@ -414,7 +450,7 @@ function renderBudgets() {
         ? `${Money.formatBase(b.left)} left — getting close`
         : `${Money.formatBase(b.left)} left`;
     return `
-      <div class="budget is-${b.state}">
+      <div class="budget is-${b.state}" style="--i:${i}">
         <div class="budget-top">
           <span class="budget-name">${esc(b.category)}</span>
           <span class="budget-figures"><b>${esc(Money.formatBase(b.spent))}</b> of ${esc(Money.formatBase(b.limitBase))}</span>
@@ -1218,14 +1254,50 @@ $('bg-clear').addEventListener('click', () => {
 /* tabs, theme, start                                                  */
 /* ------------------------------------------------------------------ */
 
+const TAB_ORDER = ['vault', 'wallets', 'records', 'budgets', 'rates', 'settings'];
+let currentTab = 'vault';
+
+/* The active pill glides to the section you picked rather than jumping. */
+function movePill() {
+  const active = document.querySelector('.seg.is-active');
+  const pill = $('seg-pill');
+  if (!active || !pill) return;
+  pill.style.width = `${active.offsetWidth}px`;
+  pill.style.transform = `translateX(${active.offsetLeft}px)`;
+}
+
+let enterTimer = null;
+
 function showTab(name) {
+  const forward = TAB_ORDER.indexOf(name) >= TAB_ORDER.indexOf(currentTab);
+  currentTab = name;
+
   for (const tab of document.querySelectorAll('.seg')) {
     tab.classList.toggle('is-active', tab.dataset.tab === name);
   }
+
   for (const screen of document.querySelectorAll('.screen')) {
-    screen.classList.toggle('is-active', screen.id === `screen-${name}`);
+    const on = screen.id === `screen-${name}`;
+    screen.classList.toggle('is-active', on);
+    screen.classList.remove('is-entering', 'from-left', 'from-right');
+    if (on && !reduceMotion()) {
+      /* Reading offsetWidth restarts the animation even when the same screen
+         is shown twice in a row. */
+      void screen.offsetWidth;
+      screen.classList.add('is-entering', forward ? 'from-right' : 'from-left');
+    }
   }
+
+  movePill();
+  clearTimeout(enterTimer);
+  enterTimer = setTimeout(() => {
+    document.querySelectorAll('.screen').forEach((s) => {
+      s.classList.remove('is-entering', 'from-left', 'from-right');
+    });
+  }, 900);
 }
+
+window.addEventListener('resize', movePill);
 
 $('tabs').addEventListener('click', (event) => {
   const name = event.target.dataset.tab;
@@ -1331,6 +1403,16 @@ applyTheme();
 resetWalletForm();
 resetTxForm();
 renderAll();
+
+requestAnimationFrame(() => {
+  movePill();
+  document.body.classList.add('is-ready');
+  const first = document.querySelector('.screen.is-active');
+  if (first && !reduceMotion()) first.classList.add('is-entering', 'from-right');
+  setTimeout(() => {
+    if (first) first.classList.remove('is-entering', 'from-right');
+  }, 900);
+});
 
 Cloud.onChange(renderAccount);
 Cloud.init(onCloudBook).catch(() => renderAccount());
