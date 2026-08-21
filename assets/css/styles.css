@@ -65,7 +65,10 @@ h1, h2, h3 { margin: 0; font-weight: 640; letter-spacing: -.015em; }
   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
 }
 
-.shell { max-width: 1140px; margin: 0 auto; padding: 0 clamp(14px, 3vw, 28px) 64px; }
+.shell {
+  max-width: 1140px; margin: 0 auto;
+  padding: 0 clamp(14px, 3vw, 28px) calc(96px + env(safe-area-inset-bottom, 0px));
+}
 
 /* ---------------- top bar ---------------- */
 
@@ -130,6 +133,8 @@ h1, h2, h3 { margin: 0; font-weight: 640; letter-spacing: -.015em; }
   background: var(--surface); border: 1px solid var(--line);
   border-radius: 999px; overflow-x: auto; scrollbar-width: none;
   margin-bottom: 22px;
+  position: sticky; top: 10px; z-index: 20;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--bg) 70%, transparent);
 }
 .segmented::-webkit-scrollbar { display: none; }
 .seg {
@@ -161,7 +166,10 @@ h1, h2, h3 { margin: 0; font-weight: 640; letter-spacing: -.015em; }
 .muted { color: var(--muted); font-size: 12.5px; }
 .lead { margin: 0 0 12px; color: var(--muted); }
 .lead strong { color: var(--text); }
-.columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 18px; }
+.columns {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+  gap: 18px; align-items: start;
+}
 
 /* ---------------- hero ---------------- */
 
@@ -260,6 +268,7 @@ h1, h2, h3 { margin: 0; font-weight: 640; letter-spacing: -.015em; }
 .record-icon.out { color: var(--rose); }
 .record-icon.in { color: var(--green); }
 .record-icon.move { color: var(--gold); }
+.record-main { min-width: 0; cursor: pointer; border-radius: 8px; }
 .record-main strong { display: block; font-weight: 620; font-size: 14.5px; }
 .record-meta { color: var(--muted); font-size: 12px; }
 .record-amount { text-align: right; font-weight: 680; white-space: nowrap; font-size: 14.5px; }
@@ -567,4 +576,97 @@ input[type="range"]::-moz-range-thumb {
 
 @media (prefers-reduced-motion: reduce) {
   .backdrop-image { transition: none; }
+}
+
+
+/* ---------------- quick add ---------------- */
+
+.fab {
+  position: fixed;
+  right: clamp(16px, 3vw, 30px);
+  bottom: calc(clamp(16px, 3vw, 30px) + env(safe-area-inset-bottom, 0px));
+  z-index: 30;
+  display: grid; place-items: center;
+  width: 58px; height: 58px;
+  border: 0; border-radius: 50%;
+  background: var(--gold); color: #14100a;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--gold) 38%, transparent);
+  cursor: pointer;
+  transition: transform .14s ease, box-shadow .14s ease;
+}
+.fab:hover { transform: translateY(-2px); box-shadow: 0 14px 30px color-mix(in srgb, var(--gold) 46%, transparent); }
+.fab:active { transform: translateY(1px); }
+
+/* ---------------- empty states ---------------- */
+
+.empty-state {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 6px; padding: 30px 20px; text-align: center;
+}
+.empty-mark {
+  display: grid; place-items: center;
+  width: 46px; height: 46px; margin-bottom: 4px;
+  border-radius: 14px; font-size: 20px;
+  color: var(--gold); background: var(--gold-soft);
+  border: 1px solid color-mix(in srgb, var(--gold) 26%, transparent);
+}
+.empty-title { margin: 0; font-weight: 650; font-size: 15px; }
+.empty-hint {
+  margin: 0 0 10px; color: var(--muted); font-size: 13.5px;
+  max-width: 46ch; line-height: 1.5;
+}
+
+/* ---------------- motion and focus ---------------- */
+
+.screen.is-active { animation: rise .2s ease-out both; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: none; }
+}
+
+.btn:active, .seg:active, .choice-btn:active { transform: translateY(1px); }
+.btn, .seg, .choice-btn, .icon-btn { transition: transform .1s ease, border-color .15s, color .15s, background .15s; }
+
+:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .screen.is-active { animation: none; }
+  .fab, .btn, .seg, .choice-btn, .icon-btn { transition: none; }
+}
+
+/* ---------------- narrow screens ---------------- */
+
+.on-narrow { display: none; }
+
+@media (max-width: 560px) {
+  /* One tidy line per record. Tapping the row edits it, so the Edit button
+     stands down and gives its width back to the description. */
+  .on-wide { display: none; }
+  .on-narrow { display: inline; }
+  .record { grid-template-columns: 32px minmax(0, 1fr) auto auto; gap: 9px; }
+  .record-actions { grid-column: auto; }
+  .record-actions [data-edit-tx] { display: none; }
+  .record-meta {
+    display: block; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+  }
+  .btn.tiny { padding: 5px 9px; }
+  .segmented { top: 6px; }
+  .fab { width: 54px; height: 54px; }
+
+  /* Give the description the width it needs: tighter panels, a slightly
+     smaller amount, and a title that stops at two lines rather than
+     pushing the row taller and taller. */
+  .card { padding: 16px 14px; }
+  .record-amount { font-size: 13.5px; }
+  .record-main strong {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }

@@ -12,6 +12,18 @@ let state = Store.load();
 /* small helpers                                                       */
 /* ------------------------------------------------------------------ */
 
+/* An empty screen is the first thing a new person sees. It should say what to
+   do next, not just report that there is nothing. */
+function emptyState(mark, title, hint, action) {
+  return `
+    <div class="empty-state">
+      <span class="empty-mark" aria-hidden="true">${mark}</span>
+      <p class="empty-title">${esc(title)}</p>
+      <p class="empty-hint">${esc(hint)}</p>
+      ${action ? `<button type="button" class="btn primary" ${action.attr}>${esc(action.label)}</button>` : ''}
+    </div>`;
+}
+
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => (
     { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
@@ -155,14 +167,20 @@ function renderVault() {
   renderInsights(info);
 
   const recent = state.transactions.slice().sort(byDateDesc).slice(0, 6);
-  renderRecords($('recent-list'), recent, 'No records yet — write your first one under Records.');
+  renderRecords($('recent-list'), recent, {
+    title: 'No records yet',
+    hint: 'Write what you spent, from which wallet, and where it went. Everything else follows from that.',
+    action: { label: 'Write a record', attr: 'data-goto="records" data-focus="tx-amount"' }
+  });
 }
 
 function renderCurrencyBars(t) {
   const rows = Object.values(t.byCurrency).sort((a, b) => b.base - a.base);
   const host = $('currency-bars');
   if (!rows.length) {
-    host.innerHTML = '<p class="empty">No wallets yet.</p>';
+    host.innerHTML = emptyState('◇', 'Nothing to show yet',
+      'Add a wallet and this fills with your money, split by currency.',
+      { label: 'Add a wallet', attr: 'data-goto="wallets" data-focus="wallet-name"' });
     return;
   }
   const max = Math.max(...rows.map((r) => Math.abs(r.base)), 1);
@@ -241,7 +259,9 @@ function renderInsights(info) {
 function renderWallets() {
   const host = $('wallet-list');
   if (!state.wallets.length) {
-    host.innerHTML = '<p class="empty">No wallets yet. Add your pocket cash and your cards above.</p>';
+    host.innerHTML = emptyState('◇', 'No wallets yet',
+      'A wallet is any place your money sits — the cash in your pocket, a card, dollars kept at home.',
+      { label: 'Name your first wallet', attr: 'data-focus="wallet-name"' });
     return;
   }
   host.innerHTML = state.wallets.map((w) => {
@@ -305,7 +325,9 @@ const RECORD_MARK = { expense: ['−', 'out'], income: ['+', 'in'], transfer: ['
 
 function renderRecords(host, list, emptyText) {
   if (!list.length) {
-    host.innerHTML = `<p class="empty">${esc(emptyText)}</p>`;
+    host.innerHTML = emptyText.action
+      ? emptyState('▤', emptyText.title, emptyText.hint, emptyText.action)
+      : `<p class="empty">${esc(emptyText)}</p>`;
     return;
   }
   host.innerHTML = list.map((t) => {
@@ -320,13 +342,16 @@ function renderRecords(host, list, emptyText) {
     return `
       <div class="record">
         <span class="record-icon ${tone}">${mark}</span>
-        <div class="record-main">
+        <div class="record-main" data-edit-tx="${esc(t.id)}" role="button" tabindex="0"
+          aria-label="Edit ${esc(d.title)}">
           <strong>${esc(d.title)}</strong>
           <span class="record-meta">${esc(d.meta)}</span>
         </div>
         <div class="record-amount ${t.type === 'transfer' ? '' : tone}">${sign}${esc(Money.format(t.amount, code))}${converted}</div>
         <div class="record-actions">
-          <button type="button" class="btn tiny" data-edit-tx="${esc(t.id)}">Edit</button>
+          <button type="button" class="btn tiny" data-edit-tx="${esc(t.id)}" aria-label="Edit record">
+            <span class="on-wide">Edit</span><span class="on-narrow">✎</span>
+          </button>
           <button type="button" class="btn tiny danger" data-delete-tx="${esc(t.id)}">×</button>
         </div>
       </div>`;
@@ -376,7 +401,9 @@ function renderBudgets() {
   const rows = Money.budgetProgress();
   const host = $('budget-list');
   if (!rows.length) {
-    host.innerHTML = '<p class="empty">No limits yet. Pick a category above and say what it may cost each month.</p>';
+    host.innerHTML = emptyState('◈', 'No limits set',
+      'Pick a category above and say what it may cost each month. The bar warns you before you pass it.',
+      { label: 'Set a limit', attr: 'data-focus="budget-limit"' });
     return;
   }
   host.innerHTML = rows.map((b) => {
@@ -690,8 +717,10 @@ $('tx-to-wallet').addEventListener('change', updateAmountHints);
 $('tx-amount').addEventListener('input', updateAmountHints);
 
 function handleRecordClick(event) {
-  const edit = event.target.getAttribute('data-edit-tx');
-  const del = event.target.getAttribute('data-delete-tx');
+  const editTarget = event.target.closest('[data-edit-tx]');
+  const delTarget = event.target.closest('[data-delete-tx]');
+  const edit = editTarget && editTarget.getAttribute('data-edit-tx');
+  const del = delTarget && delTarget.getAttribute('data-delete-tx');
   if (edit) editTx(edit);
   if (!del) return;
   if (!confirm('Delete this record?')) return;
@@ -702,8 +731,18 @@ function handleRecordClick(event) {
   Cloud.deleteTx(del);
 }
 
-$('records-list').addEventListener('click', handleRecordClick);
-$('recent-list').addEventListener('click', handleRecordClick);
+function handleRecordKey(event) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const target = event.target.closest('[data-edit-tx]');
+  if (!target) return;
+  event.preventDefault();
+  editTx(target.getAttribute('data-edit-tx'));
+}
+
+for (const id of ['records-list', 'recent-list']) {
+  $(id).addEventListener('click', handleRecordClick);
+  $(id).addEventListener('keydown', handleRecordKey);
+}
 
 for (const id of ['filter-text', 'filter-wallet', 'filter-category', 'filter-type']) {
   $(id).addEventListener('input', renderRecordsScreen);
@@ -1193,9 +1232,26 @@ $('tabs').addEventListener('click', (event) => {
   if (name) showTab(name);
 });
 
+const smooth = () => (window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth');
+
+function focusField(id) {
+  const el = $(id);
+  if (!el) return;
+  el.focus({ preventScroll: true });
+  el.scrollIntoView({ block: 'center', behavior: smooth() });
+}
+
+$('quick-add').addEventListener('click', () => {
+  resetTxForm();
+  showTab('records');
+  focusField('tx-amount');
+});
+
 document.addEventListener('click', (event) => {
-  const goto = event.target.dataset && event.target.dataset.goto;
-  if (goto) showTab(goto);
+  const button = event.target.closest('[data-goto], [data-focus]');
+  if (!button) return;
+  if (button.dataset.goto) showTab(button.dataset.goto);
+  if (button.dataset.focus) focusField(button.dataset.focus);
 });
 
 function applyTheme() {

@@ -48,7 +48,12 @@ biggest single spend, where most money went, whether you are spending more or le
 than last month, and what the month will cost at the current pace.
 
 **Records screen** — search and filter by wallet, category and type; edit or
-delete anything.
+delete anything. On a phone, tapping a row opens it.
+
+**Built for a thumb** — the section bar stays put as a screen scrolls, a quick-add
+button is always within reach, and an empty screen says what to do next instead of
+just reporting that there is nothing. Keyboard focus is always visible, and every
+animation stands down for anyone who asks their device for less motion.
 
 **Look** — light and dark, and a background behind the app: plain, a drawn view of
 the Ala-Too range, or a photograph of your own. Whichever you pick, a scrim and a
