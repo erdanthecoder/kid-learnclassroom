@@ -50,8 +50,18 @@ than last month, and what the month will cost at the current pace.
 **Records screen** — search and filter by wallet, category and type; edit or
 delete anything.
 
-**Everything else** — light and dark, JSON backup and restore, CSV export, and it
-installs to a phone home screen and opens without a connection.
+**Look** — light and dark, and a background behind the app: plain, a drawn view of
+the Ala-Too range, or a photograph of your own. Whichever you pick, a scrim and a
+frosted panel keep every number readable — a money app must never make you squint
+at a balance. The strength slider is yours to push.
+
+Your photograph is scaled down and kept **on that device only**. It is never
+uploaded, and a backup file does not carry it; only the choice of background
+follows your account. The drawn mountains are vector, so they stay sharp at any
+size and carry no licence with them.
+
+**Everything else** — JSON backup and restore, CSV export, and it installs to a
+phone home screen and opens without a connection.
 
 ## Setting up Firebase
 
@@ -209,6 +219,7 @@ assets/css/styles.css        design tokens, dark and light
 assets/js/config.js          your Firebase project (empty by default)
 assets/js/cloud.js           Google sign-in, live sync, offline writes
 assets/js/store.js           data model, defaults, validation, device copy
+assets/bg-mountains.svg      the drawn Ala-Too background
 assets/js/currencies.js      the searchable catalogue of world currencies
 assets/js/money.js           conversion, balances, spending, budgets, insights
 assets/js/app.js             screens, forms, events

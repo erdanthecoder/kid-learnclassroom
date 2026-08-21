@@ -13,6 +13,7 @@ const SHELL = [
   'assets/js/currencies.js',
   'assets/js/config.js',
   'assets/icon.svg',
+  'assets/bg-mountains.svg',
   'manifest.webmanifest'
 ];
 

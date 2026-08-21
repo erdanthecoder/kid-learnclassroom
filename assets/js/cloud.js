@@ -305,7 +305,8 @@ async function pushAll(state) {
     await sdk.setDoc(sdk.doc(db, 'users', currentUser.uid), {
       baseCurrency: state.baseCurrency,
       theme: state.theme,
-      categories: state.categories
+      categories: state.categories,
+      background: state.background || { kind: 'mountains', strength: 62 }
     }, { merge: true });
 
     await inChunks(state.wallets, (batch, w) => batch.set(ref('wallets', w.id), walletDoc(w)));
@@ -476,7 +477,8 @@ export const Cloud = {
     return sdk.setDoc(sdk.doc(db, 'users', currentUser.uid), {
       baseCurrency: state.baseCurrency,
       theme: state.theme,
-      categories: state.categories
+      categories: state.categories,
+      background: state.background || { kind: 'mountains', strength: 62 }
     }, { merge: true }).catch(reportError);
   },
 

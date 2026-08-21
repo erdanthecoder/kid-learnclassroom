@@ -12,6 +12,11 @@
   <link rel="stylesheet" href="assets/css/styles.css" />
 </head>
 <body>
+  <div class="backdrop" id="backdrop" aria-hidden="true">
+    <div class="backdrop-image" id="backdrop-image"></div>
+    <div class="backdrop-scrim"></div>
+  </div>
+
   <div class="shell">
     <header class="topbar">
       <a class="brand" href="./">
@@ -329,6 +334,34 @@
           </header>
           <p class="lead" id="account-lead"></p>
           <div class="btn-row" id="account-actions"></div>
+        </article>
+
+        <article class="card">
+          <header class="card-head">
+            <h2>Look</h2>
+            <span class="muted">background and theme</span>
+          </header>
+
+          <div class="field wide">
+            <span>Behind the app</span>
+            <div class="choice" id="bg-choice" role="radiogroup" aria-label="Background">
+              <button type="button" class="choice-btn" data-bg="none">Plain</button>
+              <button type="button" class="choice-btn" data-bg="mountains">Mountains</button>
+              <button type="button" class="choice-btn" data-bg="photo">My photo</button>
+            </div>
+          </div>
+
+          <div class="btn-row" id="bg-photo-row" hidden>
+            <label class="btn file-btn">Choose a photo<input type="file" id="bg-file" accept="image/*" hidden /></label>
+            <button type="button" class="btn quiet" id="bg-clear" hidden>Remove photo</button>
+          </div>
+
+          <label class="field" id="bg-strength-wrap">
+            <span>How strongly it shows <em id="bg-strength-value"></em></span>
+            <input id="bg-strength" type="range" min="8" max="100" step="4" />
+          </label>
+
+          <p class="muted" id="bg-note"></p>
         </article>
 
         <article class="card">

@@ -33,12 +33,18 @@ export function slug(text) {
   return String(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'item';
 }
 
+/* The chosen background travels with the account; the photo itself does not.
+   A photo would be far too big for a settings document, so it stays on the
+   device that chose it, under its own storage key. */
+export const PHOTO_KEY = 'vaultline.bg';
+
 export function blank() {
   return {
     version: 1,
     isSample: false,
     baseCurrency: 'USD',
     theme: 'dark',
+    background: { kind: 'mountains', strength: 62 },
     currencies: DEFAULT_CURRENCIES.map((c) => ({ ...c })),
     categories: DEFAULT_CATEGORIES.slice(),
     wallets: [],
@@ -85,11 +91,19 @@ export function normalise(raw) {
   const base = blank();
   if (!raw || typeof raw !== 'object') return base;
 
+  const bg = raw.background && typeof raw.background === 'object' ? raw.background : {};
+  const kind = ['none', 'mountains', 'photo'].includes(bg.kind) ? bg.kind : base.background.kind;
+  const strength = Number(bg.strength);
+
   const data = {
     version: 1,
     isSample: raw.isSample === true,
     baseCurrency: typeof raw.baseCurrency === 'string' ? raw.baseCurrency : base.baseCurrency,
     theme: raw.theme === 'light' ? 'light' : 'dark',
+    background: {
+      kind,
+      strength: Number.isFinite(strength) ? Math.min(100, Math.max(8, strength)) : base.background.strength
+    },
     currencies: Array.isArray(raw.currencies) && raw.currencies.length ? raw.currencies : base.currencies,
     categories: Array.isArray(raw.categories) && raw.categories.length ? raw.categories : base.categories,
     wallets: Array.isArray(raw.wallets) ? raw.wallets : [],
@@ -201,6 +215,9 @@ export function adopt(cloudBook) {
   const settings = cloudBook.settings || {};
   next.baseCurrency = settings.baseCurrency || state.baseCurrency;
   next.theme = settings.theme === 'light' ? 'light' : (settings.theme || state.theme);
+  next.background = settings.background && typeof settings.background === 'object'
+    ? settings.background
+    : state.background;
   next.categories = Array.isArray(settings.categories) && settings.categories.length
     ? settings.categories
     : state.categories;

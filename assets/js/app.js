@@ -464,6 +464,7 @@ function renderAll() {
   renderRates();
   renderStats();
   renderAccount();
+  renderLook();
 }
 
 /* ------------------------------------------------------------------ */
@@ -1032,6 +1033,149 @@ function renderAccountCard(user, status) {
 $('sign-in').addEventListener('click', () => Cloud.signIn());
 
 /* ------------------------------------------------------------------ */
+/* background                                                          */
+/* ------------------------------------------------------------------ */
+
+function readPhoto() {
+  try {
+    return localStorage.getItem(Store.PHOTO_KEY) || '';
+  } catch (err) {
+    return '';
+  }
+}
+
+/* A phone photo is several megabytes, far past what a browser will keep. Draw
+   it down to something a screen can actually use before storing it. */
+function shrinkImage(file, maxSide = 1800, quality = 0.72) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const width = Math.max(1, Math.round(img.width * scale));
+      const height = Math.max(1, Math.round(img.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      URL.revokeObjectURL(url);
+      try {
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (err) {
+        reject(err);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('that file is not an image'));
+    };
+    img.src = url;
+  });
+}
+
+function background() {
+  return state.background || { kind: 'mountains', strength: 62 };
+}
+
+function applyBackground() {
+  const bg = background();
+  const photo = bg.kind === 'photo' ? readPhoto() : '';
+  const url = bg.kind === 'mountains' ? 'assets/bg-mountains.svg' : photo;
+
+  $('backdrop-image').style.backgroundImage = url ? `url("${url}")` : 'none';
+  document.body.classList.toggle('has-backdrop', Boolean(url));
+  document.documentElement.style.setProperty('--backdrop-strength', String((bg.strength || 62) / 100));
+}
+
+function renderLook() {
+  const bg = background();
+  for (const btn of document.querySelectorAll('#bg-choice .choice-btn')) {
+    btn.classList.toggle('is-active', btn.dataset.bg === bg.kind);
+  }
+
+  const hasPhoto = Boolean(readPhoto());
+  $('bg-photo-row').hidden = bg.kind !== 'photo';
+  $('bg-clear').hidden = !hasPhoto;
+  $('bg-strength-wrap').hidden = bg.kind === 'none';
+  $('bg-strength').value = String(bg.strength || 62);
+  $('bg-strength-value').textContent = `${bg.strength || 62}%`;
+
+  $('bg-note').textContent = bg.kind === 'photo'
+    ? (hasPhoto
+      ? 'Your photo is kept on this device only — it is never uploaded, and a backup file does not carry it.'
+      : 'Pick any photo from this device. It stays here; only the choice follows your account.')
+    : bg.kind === 'mountains'
+      ? 'Drawn rather than photographed, so it stays sharp on any screen and carries no licence.'
+      : 'A plain background, the lightest on the eye and on the battery.';
+}
+
+$('bg-choice').addEventListener('click', (event) => {
+  const kind = event.target.dataset.bg;
+  if (!kind) return;
+  if (kind === 'photo' && !readPhoto()) {
+    state.background = { ...background(), kind };
+    applyBackground();
+    renderLook();
+    Store.save();
+    $('bg-file').click();
+    return;
+  }
+  state.background = { ...background(), kind };
+  applyBackground();
+  renderLook();
+  Store.save();
+  Cloud.saveSettings(state);
+});
+
+$('bg-strength').addEventListener('input', function () {
+  state.background = { ...background(), strength: Number(this.value) || 45 };
+  $('bg-strength-value').textContent = `${state.background.strength}%`;
+  applyBackground();
+});
+
+$('bg-strength').addEventListener('change', () => {
+  Store.save();
+  Cloud.saveSettings(state);
+});
+
+$('bg-file').addEventListener('change', async (event) => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  toast('Preparing the photo…');
+  try {
+    const dataUrl = await shrinkImage(file);
+    try {
+      localStorage.setItem(Store.PHOTO_KEY, dataUrl);
+    } catch (err) {
+      toast('That photo is too big for this browser to keep — try a smaller one');
+      return;
+    }
+    state.background = { ...background(), kind: 'photo' };
+    Store.save();
+    applyBackground();
+    renderLook();
+    Cloud.saveSettings(state);
+    toast('Photo set as the background');
+  } catch (err) {
+    toast(String(err.message || 'that file could not be read'));
+  }
+});
+
+$('bg-clear').addEventListener('click', () => {
+  try {
+    localStorage.removeItem(Store.PHOTO_KEY);
+  } catch (err) { /* nothing to remove */ }
+  state.background = { ...background(), kind: 'mountains' };
+  Store.save();
+  applyBackground();
+  renderLook();
+  Cloud.saveSettings(state);
+  toast('Photo removed');
+});
+
+/* ------------------------------------------------------------------ */
 /* tabs, theme, start                                                  */
 /* ------------------------------------------------------------------ */
 
@@ -1056,6 +1200,7 @@ document.addEventListener('click', (event) => {
 
 function applyTheme() {
   document.documentElement.setAttribute('data-theme', state.theme);
+  applyBackground();
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) meta.setAttribute('content', state.theme === 'dark' ? '#0b0e14' : '#f5f4f0');
 }

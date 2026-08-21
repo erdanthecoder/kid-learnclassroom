@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" preserveAspectRatio="xMidYMax slice">
+  <!-- Vaultline — the Ala-Too range, drawn rather than photographed.
+       Vector so it stays sharp at any size, weighs almost nothing, and carries
+       no licence attached to it. Swap in your own photograph under
+       Settings -> Look if you would rather have one. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1a2740"/>
+      <stop offset="55%" stop-color="#2b3a55"/>
+      <stop offset="100%" stop-color="#3d4a63"/>
+    </linearGradient>
+    <linearGradient id="far" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8ea3c4"/>
+      <stop offset="100%" stop-color="#5b6f92"/>
+    </linearGradient>
+    <linearGradient id="mid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#5d7093"/>
+      <stop offset="100%" stop-color="#3a4a67"/>
+    </linearGradient>
+    <linearGradient id="near" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#31405c"/>
+      <stop offset="100%" stop-color="#1d283c"/>
+    </linearGradient>
+    <linearGradient id="front" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#161f2f"/>
+      <stop offset="100%" stop-color="#0d1420"/>
+    </linearGradient>
+    <linearGradient id="lake" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#4a5f84" stop-opacity=".9"/>
+      <stop offset="100%" stop-color="#2a3750" stop-opacity=".7"/>
+    </linearGradient>
+    <radialGradient id="sun" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e8c489" stop-opacity=".95"/>
+      <stop offset="60%" stop-color="#d8b06a" stop-opacity=".35"/>
+      <stop offset="100%" stop-color="#d8b06a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8ea3c4" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#8ea3c4" stop-opacity=".22"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+
+  <!-- low sun over the ridge -->
+  <circle cx="1180" cy="300" r="230" fill="url(#sun)"/>
+  <circle cx="1180" cy="300" r="46" fill="#e8c489" opacity=".55"/>
+
+  <!-- furthest snow peaks -->
+  <path fill="url(#far)" d="
+    M0 470 L120 392 L196 434 L286 356 L360 402 L452 318 L534 372 L612 300
+    L690 356 L764 306 L850 372 L926 330 L1010 390 L1092 336 L1178 402
+    L1262 350 L1348 410 L1436 356 L1520 414 L1600 372 L1600 900 L0 900 Z"/>
+  <!-- snow on the far caps -->
+  <path fill="#e9eef7" opacity=".82" d="
+    M452 318 L484 350 L466 356 L444 344 L424 356 L408 348 Z
+    M612 300 L646 336 L626 342 L604 330 L584 342 L568 334 Z
+    M764 306 L798 344 L776 350 L754 338 L734 350 L718 342 Z
+    M1092 336 L1124 370 L1104 376 L1084 364 L1064 376 L1048 368 Z"/>
+
+  <path fill="url(#haze)" d="M0 400 L1600 340 L1600 640 L0 700 Z"/>
+
+  <!-- middle range -->
+  <path fill="url(#mid)" d="
+    M0 566 L104 500 L200 556 L300 480 L404 552 L512 470 L620 544 L724 486
+    L836 552 L940 494 L1052 560 L1160 496 L1268 562 L1380 500 L1492 566
+    L1600 508 L1600 900 L0 900 Z"/>
+  <path fill="#dbe3f0" opacity=".38" d="
+    M512 470 L548 508 L526 514 L504 500 L482 514 L464 506 Z
+    M1160 496 L1194 532 L1172 538 L1152 526 L1132 538 L1116 530 Z"/>
+
+  <!-- the lake, Issyk-Kul low in the valley -->
+  <path fill="url(#lake)" d="M0 694 C 260 660, 520 706, 800 686 C 1080 666, 1340 708, 1600 678 L1600 760 L0 760 Z"/>
+  <g opacity=".22" fill="#e9eef7">
+    <rect x="180" y="700" width="150" height="2" rx="1"/>
+    <rect x="420" y="714" width="230" height="2" rx="1"/>
+    <rect x="760" y="698" width="180" height="2" rx="1"/>
+    <rect x="1080" y="716" width="260" height="2" rx="1"/>
+  </g>
+
+  <!-- near ridge -->
+  <path fill="url(#near)" d="
+    M0 742 L140 690 L268 744 L400 682 L536 748 L672 690 L812 754 L948 694
+    L1088 758 L1224 700 L1360 760 L1492 706 L1600 754 L1600 900 L0 900 Z"/>
+
+  <!-- foreground fold, where the page content sits -->
+  <path fill="url(#front)" d="
+    M0 828 C 220 800, 420 846, 640 822 C 860 798, 1080 844, 1300 818
+    C 1420 804, 1520 820, 1600 812 L1600 900 L0 900 Z"/>
+</svg>
