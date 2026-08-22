@@ -9,7 +9,7 @@
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="assets/icon-180.png" />
-  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="assets/css/styles.css?v=3" />
 </head>
 <body>
   <div class="backdrop" id="backdrop" aria-hidden="true">
@@ -415,6 +415,28 @@
 
   <div id="toast" class="toast" hidden></div>
 
-  <script type="module" src="assets/js/app.js"></script>
+  <!-- If the app fails while loading — most likely a service worker still
+       serving a stale script against a newer page — clear the caches, drop the
+       worker and reload once. Guarded by sessionStorage so it can never loop. -->
+  <script>
+    window.addEventListener('error', function (event) {
+      if (!event || !event.message) return;
+      if (window.Vaultline || sessionStorage.getItem('vaultline-recovered')) return;
+      sessionStorage.setItem('vaultline-recovered', '1');
+      Promise.resolve()
+        .then(function () { return caches && caches.keys ? caches.keys() : []; })
+        .then(function (keys) { return Promise.all(keys.map(function (k) { return caches.delete(k); })); })
+        .catch(function () {})
+        .then(function () {
+          if (!navigator.serviceWorker) return null;
+          return navigator.serviceWorker.getRegistrations()
+            .then(function (regs) { return Promise.all(regs.map(function (r) { return r.unregister(); })); })
+            .catch(function () {});
+        })
+        .then(function () { location.reload(); });
+    });
+  </script>
+
+  <script type="module" src="assets/js/app.js?v=3"></script>
 </body>
 </html>

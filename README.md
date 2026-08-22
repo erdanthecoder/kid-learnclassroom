@@ -159,6 +159,24 @@ npx http-server .        # then open the address it prints
 Add `http://localhost:8080` under Firebase's authorized domains if you want
 sign-in to work locally too.
 
+## Releasing a change safely
+
+Asset URLs carry a version — `assets/js/app.js?v=3`, and the same on the imports
+inside the modules. Bump that number in `index.html`, in the `import` lines of
+`app.js`, `money.js` and `cloud.js`, and in `VERSION` at the top of `sw.js`,
+whenever those files change.
+
+It matters more than it looks. Without it a returning visitor gets the new HTML
+but a cached older script — from the service worker, or from the browser's own
+`max-age` — and an old script that reaches for an element the new page no longer
+has throws while loading, which stops every later listener from binding and
+leaves the page inert. A versioned URL has never been cached, so it always comes
+from the server.
+
+Three things guard against it now: versioned URLs, a service worker that
+revalidates instead of trusting `max-age`, and `on(id, event, handler)` in
+`app.js`, which warns about a missing element rather than throwing.
+
 ## Publishing
 
 GitHub Pages serves the site and needs nothing from you. Firebase Hosting is an

@@ -14,7 +14,7 @@
 /* Read the config as a namespace rather than named imports: a hand-edited or
    older config.js that is missing one of these would otherwise fail to link and
    take the whole app down with it, and config.js is the file people edit. */
-import * as appConfig from './config.js';
+import * as appConfig from './config.js?v=3';
 
 const firebaseConfig = appConfig.firebaseConfig || {};
 const firebaseSdkVersion = appConfig.firebaseSdkVersion || '11.0.0';

@@ -1,11 +1,24 @@
 /* Vaultline — screens, forms and everything the user touches. */
 
-import * as Store from './store.js';
-import * as Money from './money.js';
-import { Cloud } from './cloud.js';
-import { search as searchCurrencies, lookup as lookupCurrency } from './currencies.js';
+import * as Store from './store.js?v=3';
+import * as Money from './money.js?v=3';
+import { Cloud } from './cloud.js?v=3';
+import { search as searchCurrencies, lookup as lookupCurrency } from './currencies.js?v=3';
 
 const $ = (id) => document.getElementById(id);
+
+/* Bind through this rather than $('x').addEventListener directly. A missing
+   element then costs one warning instead of throwing during module evaluation,
+   which would stop every later listener from binding and leave the whole page
+   inert. That is exactly how a stale cached script breaks an app. */
+function on(id, event, handler, options) {
+  const el = $(id);
+  if (!el) {
+    console.warn(`Vaultline: no #${id} to bind ${event} to`);
+    return;
+  }
+  el.addEventListener(event, handler, options);
+}
 let state = Store.load();
 
 /* ------------------------------------------------------------------ */
@@ -562,7 +575,7 @@ function editWallet(id) {
   $('wallet-name').focus();
 }
 
-$('wallet-form').addEventListener('submit', (event) => {
+on('wallet-form', 'submit', (event) => {
   event.preventDefault();
   const id = $('wallet-id').value;
   const data = {
@@ -588,9 +601,9 @@ $('wallet-form').addEventListener('submit', (event) => {
   if (saved) Cloud.saveWallet(saved);
 });
 
-$('wallet-cancel').addEventListener('click', resetWalletForm);
+on('wallet-cancel', 'click', resetWalletForm);
 
-$('wallet-currency').addEventListener('change', function () {
+on('wallet-currency', 'change', function () {
   if (this.value !== '__find') return;
   this.value = state.baseCurrency;
   showTab('rates');
@@ -598,7 +611,7 @@ $('wallet-currency').addEventListener('change', function () {
   toast('Find the currency, then come back to the wallet');
 });
 
-$('wallet-list').addEventListener('click', (event) => {
+on('wallet-list', 'click', (event) => {
   const edit = event.target.getAttribute('data-edit-wallet');
   const del = event.target.getAttribute('data-delete-wallet');
   if (edit) editWallet(edit);
@@ -688,14 +701,14 @@ function editTx(id) {
   $('tx-amount').focus();
 }
 
-$('tx-type-choice').addEventListener('click', (event) => {
+on('tx-type-choice', 'click', (event) => {
   const type = event.target.dataset.type;
   if (!type) return;
   $('tx-type').value = type;
   applyTypeUI();
 });
 
-$('tx-form').addEventListener('submit', (event) => {
+on('tx-form', 'submit', (event) => {
   event.preventDefault();
   if (!state.wallets.length) {
     toast('Add a wallet first');
@@ -747,10 +760,10 @@ $('tx-form').addEventListener('submit', (event) => {
   if (saved) Cloud.saveTx(saved);
 });
 
-$('tx-cancel').addEventListener('click', resetTxForm);
-$('tx-wallet').addEventListener('change', updateAmountHints);
-$('tx-to-wallet').addEventListener('change', updateAmountHints);
-$('tx-amount').addEventListener('input', updateAmountHints);
+on('tx-cancel', 'click', resetTxForm);
+on('tx-wallet', 'change', updateAmountHints);
+on('tx-to-wallet', 'change', updateAmountHints);
+on('tx-amount', 'input', updateAmountHints);
 
 function handleRecordClick(event) {
   const editTarget = event.target.closest('[data-edit-tx]');
@@ -776,21 +789,21 @@ function handleRecordKey(event) {
 }
 
 for (const id of ['records-list', 'recent-list']) {
-  $(id).addEventListener('click', handleRecordClick);
-  $(id).addEventListener('keydown', handleRecordKey);
+  on(id, 'click', handleRecordClick);
+  on(id, 'keydown', handleRecordKey);
 }
 
 for (const id of ['filter-text', 'filter-wallet', 'filter-category', 'filter-type']) {
-  $(id).addEventListener('input', renderRecordsScreen);
-  $(id).addEventListener('change', renderRecordsScreen);
+  on(id, 'input', renderRecordsScreen);
+  on(id, 'change', renderRecordsScreen);
 }
-$('range-select').addEventListener('change', renderCategoryBars);
+on('range-select', 'change', renderCategoryBars);
 
 /* ------------------------------------------------------------------ */
 /* budgets, rates, categories                                          */
 /* ------------------------------------------------------------------ */
 
-$('budget-form').addEventListener('submit', (event) => {
+on('budget-form', 'submit', (event) => {
   event.preventDefault();
   const category = $('budget-category').value;
   const limit = Math.abs(Number($('budget-limit').value) || 0);
@@ -809,7 +822,7 @@ $('budget-form').addEventListener('submit', (event) => {
   Cloud.saveBudget(budget);
 });
 
-$('budget-list').addEventListener('click', (event) => {
+on('budget-list', 'click', (event) => {
   const id = event.target.getAttribute('data-delete-budget');
   if (!id) return;
   state.budgets = state.budgets.filter((b) => b.id !== id);
@@ -818,13 +831,13 @@ $('budget-list').addEventListener('click', (event) => {
   Cloud.deleteBudget(id);
 });
 
-$('base-currency').addEventListener('change', function () {
+on('base-currency', 'change', function () {
   state.baseCurrency = this.value;
   commit();
   Cloud.saveSettings(state);
 });
 
-$('rates-list').addEventListener('change', (event) => {
+on('rates-list', 'change', (event) => {
   const code = event.target.getAttribute('data-rate');
   if (!code) return;
   const value = Number(event.target.value);
@@ -838,7 +851,7 @@ $('rates-list').addEventListener('change', (event) => {
   if (c) Cloud.saveCurrency(c);
 });
 
-$('rates-list').addEventListener('click', (event) => {
+on('rates-list', 'click', (event) => {
   const code = event.target.getAttribute('data-delete-currency');
   if (!code) return;
   if (code === Store.ANCHOR) { toast('USD is the reference currency and stays'); return; }
@@ -892,15 +905,15 @@ function renderCurrencyResults() {
   }).join('');
 }
 
-$('currency-search').addEventListener('input', renderCurrencyResults);
-$('currency-search').addEventListener('keydown', (event) => {
+on('currency-search', 'input', renderCurrencyResults);
+on('currency-search', 'keydown', (event) => {
   if (event.key === 'Escape') {
     $('currency-search').value = '';
     renderCurrencyResults();
   }
 });
 
-$('currency-results').addEventListener('click', (event) => {
+on('currency-results', 'click', (event) => {
   const button = event.target.closest('[data-add-currency]');
   if (!button) return;
   const code = button.getAttribute('data-add-currency');
@@ -917,7 +930,7 @@ $('currency-results').addEventListener('click', (event) => {
   Cloud.saveCurrency(added);
 });
 
-$('category-form').addEventListener('submit', function (event) {
+on('category-form', 'submit', function (event) {
   event.preventDefault();
   const name = $('new-category').value.trim();
   if (!name) return;
@@ -929,7 +942,7 @@ $('category-form').addEventListener('submit', function (event) {
   Cloud.saveSettings(state);
 });
 
-$('category-chips').addEventListener('click', (event) => {
+on('category-chips', 'click', (event) => {
   const name = event.target.getAttribute('data-delete-category');
   if (!name) return;
   const used = state.transactions.filter((t) => t.category === name).length;
@@ -959,7 +972,7 @@ function download(filename, text, mime) {
   downloadBlob(filename, new Blob([text], { type: mime }));
 }
 
-$('export-json').addEventListener('click', () => {
+on('export-json', 'click', () => {
   download(`vaultline-backup-${today()}.json`, JSON.stringify(state, null, 2), 'application/json');
   toast('Backup downloaded');
 });
@@ -1014,7 +1027,7 @@ function csvCell(value) {
   return /[",;\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
 }
 
-$('export-csv').addEventListener('click', () => {
+on('export-csv', 'click', () => {
   if (!state.transactions.length) { toast('No records to export yet'); return; }
 
   const columns = exportColumns();
@@ -1030,7 +1043,7 @@ $('export-csv').addEventListener('click', () => {
   toast('CSV downloaded');
 });
 
-$('import-json').addEventListener('change', (event) => {
+on('import-json', 'change', (event) => {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
@@ -1051,7 +1064,7 @@ $('import-json').addEventListener('change', (event) => {
   event.target.value = '';
 });
 
-$('reset-all').addEventListener('click', () => {
+on('reset-all', 'click', () => {
   const signedIn = Boolean(Cloud.user());
   const question = signedIn
     ? 'Erase every wallet and record — on this device AND in your account? This cannot be undone.'
@@ -1131,7 +1144,7 @@ function renderAccountCard(user, status) {
         ? `<br /><br /><strong>Last problem:</strong> ${esc(Cloud.statusDetail())}` : '');
     actions.innerHTML = onFile ? '' :
       '<button type="button" class="btn primary" id="account-sign-in">Sign in with Google</button>';
-    if (!onFile) $('account-sign-in').addEventListener('click', () => Cloud.signIn());
+    if (!onFile) on('account-sign-in', 'click', () => Cloud.signIn());
     return;
   }
 
@@ -1145,15 +1158,15 @@ function renderAccountCard(user, status) {
     '<button type="button" class="btn" id="account-push">Save everything again now</button>' +
     '<button type="button" class="btn quiet" id="account-sign-out">Sign out</button>';
 
-  $('account-push').addEventListener('click', () => {
+  on('account-push', 'click', () => {
     Cloud.pushAll(state).then(() => { toast('Everything sent to your account'); renderAccount(); });
   });
-  $('account-sign-out').addEventListener('click', () => {
+  on('account-sign-out', 'click', () => {
     Cloud.signOut().then(() => toast('Signed out — this device keeps its own copy'));
   });
 }
 
-$('sign-in').addEventListener('click', () => Cloud.signIn());
+on('sign-in', 'click', () => Cloud.signIn());
 
 /* ------------------------------------------------------------------ */
 /* background                                                          */
@@ -1232,7 +1245,7 @@ function renderLook() {
       : 'A plain background, the lightest on the eye and on the battery.';
 }
 
-$('bg-choice').addEventListener('click', (event) => {
+on('bg-choice', 'click', (event) => {
   const kind = event.target.dataset.bg;
   if (!kind) return;
   if (kind === 'photo' && !readPhoto()) {
@@ -1250,18 +1263,18 @@ $('bg-choice').addEventListener('click', (event) => {
   Cloud.saveSettings(state);
 });
 
-$('bg-strength').addEventListener('input', function () {
+on('bg-strength', 'input', function () {
   state.background = { ...background(), strength: Number(this.value) || 45 };
   $('bg-strength-value').textContent = `${state.background.strength}%`;
   applyBackground();
 });
 
-$('bg-strength').addEventListener('change', () => {
+on('bg-strength', 'change', () => {
   Store.save();
   Cloud.saveSettings(state);
 });
 
-$('bg-file').addEventListener('change', async (event) => {
+on('bg-file', 'change', async (event) => {
   const file = event.target.files && event.target.files[0];
   event.target.value = '';
   if (!file) return;
@@ -1286,7 +1299,7 @@ $('bg-file').addEventListener('change', async (event) => {
   }
 });
 
-$('bg-clear').addEventListener('click', () => {
+on('bg-clear', 'click', () => {
   try {
     localStorage.removeItem(Store.PHOTO_KEY);
   } catch (err) { /* nothing to remove */ }
@@ -1347,7 +1360,7 @@ function showTab(name) {
 
 window.addEventListener('resize', movePill);
 
-$('tabs').addEventListener('click', (event) => {
+on('tabs', 'click', (event) => {
   const name = event.target.dataset.tab;
   if (name) showTab(name);
 });
@@ -1361,7 +1374,7 @@ function focusField(id) {
   el.scrollIntoView({ block: 'center', behavior: smooth() });
 }
 
-$('quick-add').addEventListener('click', () => {
+on('quick-add', 'click', () => {
   resetTxForm();
   showTab('records');
   focusField('tx-amount');
@@ -1381,7 +1394,7 @@ function applyTheme() {
   if (meta) meta.setAttribute('content', state.theme === 'dark' ? '#0b0e14' : '#f5f4f0');
 }
 
-$('theme-toggle').addEventListener('click', () => {
+on('theme-toggle', 'click', () => {
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
   applyTheme();
   Store.save();

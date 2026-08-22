@@ -4,7 +4,7 @@
  * is always recomputed from its starting amount plus every record that touches
  * it, so editing or deleting a record can never leave a balance out of step. */
 
-import * as Store from './store.js';
+import * as Store from './store.js?v=3';
 
 export function currency(code) {
   return Store.get().currencies.find((c) => c.code === code) || null;

@@ -1,24 +1,33 @@
 /* Vaultline — offline shell.
-   Only same-origin files are cached. Firebase traffic is never intercepted:
-   Firestore has its own offline cache and handles that far better than we could. */
-const CACHE = 'vaultline-v1';
+ *
+ * The cache name carries a version. Bump it on any release that changes these
+ * files: a stale mix of new HTML and old JavaScript is worse than no cache at
+ * all, because the old script looks for elements the new page no longer has,
+ * throws while loading, and takes every button down with it.
+ *
+ * Same-origin files are fetched from the network first and fall back to the
+ * cache, so a deploy is picked up immediately and the app still opens with no
+ * connection. Firebase traffic is never intercepted; Firestore has its own
+ * offline cache and handles that far better than we could.
+ */
+const VERSION = 'v3';
+const CACHE = `vaultline-${VERSION}`;
+
 const SHELL = [
   './',
   'index.html',
-  'assets/css/styles.css',
-  'assets/js/app.js',
-  'assets/js/store.js',
-  'assets/js/money.js',
-  'assets/js/cloud.js',
-  'assets/js/currencies.js',
-  'assets/js/config.js',
   'assets/icon.svg',
   'assets/bg-mountains.svg',
   'manifest.webmanifest'
 ];
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
+  event.waitUntil(
+    caches.open(CACHE)
+      /* One missing file must not fail the whole install. */
+      .then((cache) => Promise.allSettled(SHELL.map((url) => cache.add(url))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', (event) => {
@@ -29,33 +38,40 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+self.addEventListener('message', (event) => {
+  if (event.data === 'vaultline-reset') {
+    event.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))));
+  }
+});
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   if (request.method !== 'GET') return;
   if (new URL(request.url).origin !== self.location.origin) return;
 
-  /* Pages come from the network when possible so a deploy is picked up at once,
-     and from the cache when there is no signal. */
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((cache) => cache.put(request, copy));
-          return res;
-        })
-        .catch(() => caches.match(request).then((hit) => hit || caches.match('index.html')))
-    );
-    return;
-  }
+  /* Revalidate rather than trust max-age: a stale script served against a
+     newer page is the failure this whole file must not cause. */
+  const fresh = new Request(request.url, {
+    cache: 'no-cache',
+    credentials: 'same-origin',
+    headers: request.headers,
+    mode: request.mode === 'navigate' ? 'same-origin' : request.mode,
+    redirect: 'follow'
+  });
 
   event.respondWith(
-    caches.match(request).then((hit) => hit || fetch(request).then((res) => {
-      if (res.ok) {
-        const copy = res.clone();
-        caches.open(CACHE).then((cache) => cache.put(request, copy));
-      }
-      return res;
-    }).catch(() => hit || Response.error()))
+    fetch(fresh)
+      .then((response) => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request).then((hit) => {
+        if (hit) return hit;
+        if (request.mode === 'navigate') return caches.match('index.html');
+        return Response.error();
+      }))
   );
 });
