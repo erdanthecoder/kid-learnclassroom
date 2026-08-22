@@ -73,11 +73,10 @@ uploaded, and a backup file does not carry it; only the choice of background
 follows your account. The drawn mountains are vector, so they stay sharp at any
 size and carry no licence with them.
 
-**Export to Excel** — a real `.xlsx`, written by the app itself with no library:
-dates are dates, amounts are numbers, the header row is frozen and filterable.
-A CSV export is there too, with a byte-order mark so Excel reads UTF-8 instead of
-mangling accents and Cyrillic. Both guard against cells that begin with `=`, which
-Excel would otherwise run as a formula.
+**CSV export** — readable headers, plain type words, and a byte-order mark so
+Excel reads it as UTF-8 rather than mangling accents and Cyrillic. Cells that
+begin with `=` are guarded, since a spreadsheet would otherwise run them as a
+formula.
 
 **Everything else** — JSON backup and restore, and it installs to a phone home
 screen and opens without a connection.
@@ -240,7 +239,6 @@ assets/js/cloud.js           Google sign-in, live sync, offline writes
 assets/js/store.js           data model, defaults, validation, device copy
 assets/bg-mountains.svg      the drawn Ala-Too background
 assets/js/currencies.js      the searchable catalogue of world currencies
-assets/js/sheet.js           writes the .xlsx and the CSV
 assets/js/money.js           conversion, balances, spending, budgets, insights
 assets/js/app.js             screens, forms, events
 .github/workflows/            the two deploys, Pages and Firebase Hosting

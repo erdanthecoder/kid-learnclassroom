@@ -4,7 +4,6 @@ import * as Store from './store.js';
 import * as Money from './money.js';
 import { Cloud } from './cloud.js';
 import { search as searchCurrencies, lookup as lookupCurrency } from './currencies.js';
-import { buildWorkbook, buildCsv } from './sheet.js';
 
 const $ = (id) => document.getElementById(id);
 let state = Store.load();
@@ -1006,19 +1005,28 @@ function exportRows() {
   });
 }
 
-$('export-xlsx').addEventListener('click', () => {
-  if (!state.transactions.length) { toast('No records to export yet'); return; }
-  downloadBlob(`vaultline-${today()}.xlsx`, buildWorkbook({
-    sheetName: 'Records',
-    columns: exportColumns(),
-    rows: exportRows()
-  }));
-  toast('Excel file downloaded');
-});
+/* A cell starting =, + or @ is run as a formula when a spreadsheet opens the
+   file, so a place named "=cmd" would execute. An apostrophe in front is the
+   spreadsheet way of saying "this is text". */
+function csvCell(value) {
+  let text = String(value ?? '');
+  if (/^[=+@\t\r]/.test(text)) text = `'${text}`;
+  return /[",;\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
 
 $('export-csv').addEventListener('click', () => {
   if (!state.transactions.length) { toast('No records to export yet'); return; }
-  downloadBlob(`vaultline-${today()}.csv`, buildCsv(exportColumns(), exportRows()));
+
+  const columns = exportColumns();
+  const lines = [columns.map((c) => csvCell(c.header)).join(',')];
+  for (const row of exportRows()) {
+    lines.push(columns.map((c) => csvCell(row[c.key])).join(','));
+  }
+
+  /* The byte-order mark is what stops Excel reading UTF-8 as ANSI and turning
+     every accent and Cyrillic letter into mojibake. CRLF is what it expects. */
+  const blob = new Blob(['\uFEFF', lines.join('\r\n'), '\r\n'], { type: 'text/csv;charset=utf-8' });
+  downloadBlob(`vaultline-${today()}.csv`, blob);
   toast('CSV downloaded');
 });
 

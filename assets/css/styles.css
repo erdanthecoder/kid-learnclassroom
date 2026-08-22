@@ -51,7 +51,6 @@ body {
   margin: 0;
   background: var(--bg);
   background-image: radial-gradient(1100px 520px at 15% -8%, var(--bg-glow), transparent 60%);
-  background-attachment: fixed;
   color: var(--text);
   font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -524,6 +523,7 @@ code {
 .backdrop-image {
   position: absolute;
   inset: 0;
+  will-change: opacity;
   background-position: center bottom;
   background-size: cover;
   background-repeat: no-repeat;
@@ -540,23 +540,23 @@ code {
       color-mix(in srgb, var(--bg) 72%, transparent) 100%);
 }
 
-/* With a background on, panels lift off it instead of blending into it. */
+/* With a background on, panels lift off it instead of blending into it.
+   These were frosted with backdrop-filter, which meant the browser re-blurred
+   whatever sat behind two dozen panels on every scrolled frame — the single
+   most expensive thing on the page. Near-opaque surfaces look the same at a
+   glance and cost nothing. */
 body.has-backdrop .card,
 body.has-backdrop .tile,
 body.has-backdrop .wallet,
 body.has-backdrop .segmented {
-  background: color-mix(in srgb, var(--surface) 90%, transparent);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--surface) 96%, transparent);
 }
 body.has-backdrop .hero {
   background:
     radial-gradient(620px 260px at 88% -30%, var(--gold-soft), transparent 70%),
     linear-gradient(155deg,
-      color-mix(in srgb, var(--surface-2) 88%, transparent),
-      color-mix(in srgb, var(--surface) 84%, transparent) 70%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+      color-mix(in srgb, var(--surface-2) 97%, transparent),
+      color-mix(in srgb, var(--surface) 95%, transparent) 70%);
 }
 
 input[type="range"] {
@@ -726,9 +726,9 @@ body { animation: app-in .5s ease both; }
     color-mix(in srgb, var(--gold) 16%, transparent) 50%,
     transparent 62%);
   transform: translateX(-120%);
-  animation: sheen 7s ease-in-out 1.2s infinite;
+  animation: sheen 7s ease-in-out 1.2s 2 both;
 }
-.wallet-sheen { animation-duration: 9s; opacity: .7; }
+.wallet-sheen { display: none; }
 .wallet:not(.is-card) .wallet-sheen { display: none; }
 @keyframes sheen {
   0% { transform: translateX(-120%); }
@@ -736,9 +736,11 @@ body { animation: app-in .5s ease both; }
 }
 
 /* things you can touch answer back */
-.tile, .wallet, .card, .budget, .rate {
+.tile, .wallet {
   transition: transform .22s cubic-bezier(.22, .8, .28, 1), box-shadow .22s, border-color .22s;
 }
+.card, .budget, .rate { transition: border-color .22s; }
+.records, .bars, .wallet-grid { contain: layout style; }
 .tile:hover, .wallet:hover {
   transform: translateY(-3px);
   border-color: color-mix(in srgb, var(--gold) 32%, var(--line));
@@ -762,11 +764,7 @@ body { animation: app-in .5s ease both; }
 }
 
 .empty-state { animation: lift .5s cubic-bezier(.22, .8, .28, 1) both; }
-.empty-mark { animation: pulse 3.4s ease-in-out infinite; }
-@keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
-}
+
 
 @media (prefers-reduced-motion: reduce) {
   body { animation: none; }
