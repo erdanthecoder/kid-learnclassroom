@@ -4,6 +4,7 @@ import * as Store from './store.js';
 import * as Money from './money.js';
 import { Cloud } from './cloud.js';
 import { search as searchCurrencies, lookup as lookupCurrency } from './currencies.js';
+import { buildWorkbook, buildCsv } from './sheet.js';
 
 const $ = (id) => document.getElementById(id);
 let state = Store.load();
@@ -944,8 +945,7 @@ $('category-chips').addEventListener('click', (event) => {
 /* backup, export, erase                                               */
 /* ------------------------------------------------------------------ */
 
-function download(filename, text, mime) {
-  const blob = new Blob([text], { type: mime });
+function downloadBlob(filename, blob) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -956,29 +956,69 @@ function download(filename, text, mime) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function download(filename, text, mime) {
+  downloadBlob(filename, new Blob([text], { type: mime }));
+}
+
 $('export-json').addEventListener('click', () => {
   download(`vaultline-backup-${today()}.json`, JSON.stringify(state, null, 2), 'application/json');
   toast('Backup downloaded');
 });
 
-$('export-csv').addEventListener('click', () => {
-  const rows = [['date', 'type', 'amount', 'currency', `in_${state.baseCurrency}`, 'wallet', 'wallet_kind', 'to_wallet', 'category', 'where', 'note']];
-  for (const t of state.transactions.slice().sort(byDateDesc)) {
+/* ---------------- spreadsheet export ---------------- */
+
+const TYPE_WORD = { expense: 'Spent', income: 'Got money', transfer: 'Moved' };
+
+function exportColumns() {
+  return [
+    { header: 'Date', key: 'date', type: 'date', width: 12 },
+    { header: 'Type', key: 'type', width: 11 },
+    { header: 'Amount', key: 'amount', type: 'number', width: 14 },
+    { header: 'Currency', key: 'currency', width: 10 },
+    { header: `Amount in ${state.baseCurrency}`, key: 'base', type: 'number', width: 18 },
+    { header: 'Wallet', key: 'wallet', width: 20 },
+    { header: 'Wallet kind', key: 'kind', width: 12 },
+    { header: 'To wallet', key: 'toWallet', width: 20 },
+    { header: 'Category', key: 'category', width: 18 },
+    { header: 'Where', key: 'place', width: 24 },
+    { header: 'Note', key: 'note', width: 30 }
+  ];
+}
+
+function exportRows() {
+  return state.transactions.slice().sort(byDateDesc).map((t) => {
     const w = Money.wallet(t.walletId);
     const to = Money.wallet(t.toWalletId);
     const code = w ? w.currency : state.baseCurrency;
-    rows.push([
-      t.date, t.type, t.amount, code,
-      Money.convert(t.amount, code).toFixed(2),
-      w ? w.name : '', w ? w.kind : '', to ? to.name : '',
-      t.category, t.place, t.note
-    ]);
-  }
-  const csv = rows.map((row) => row.map((cell) => {
-    const s = String(cell ?? '');
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  }).join(',')).join('\n');
-  download(`vaultline-records-${today()}.csv`, csv, 'text/csv');
+    return {
+      date: t.date,
+      type: TYPE_WORD[t.type] || t.type,
+      amount: t.amount,
+      currency: code,
+      base: Number(Money.convert(t.amount, code).toFixed(2)),
+      wallet: w ? w.name : '',
+      kind: w ? (w.kind === 'card' ? 'Card' : 'Cash') : '',
+      toWallet: to ? to.name : '',
+      category: t.category,
+      place: t.place,
+      note: t.note
+    };
+  });
+}
+
+$('export-xlsx').addEventListener('click', () => {
+  if (!state.transactions.length) { toast('No records to export yet'); return; }
+  downloadBlob(`vaultline-${today()}.xlsx`, buildWorkbook({
+    sheetName: 'Records',
+    columns: exportColumns(),
+    rows: exportRows()
+  }));
+  toast('Excel file downloaded');
+});
+
+$('export-csv').addEventListener('click', () => {
+  if (!state.transactions.length) { toast('No records to export yet'); return; }
+  downloadBlob(`vaultline-${today()}.csv`, buildCsv(exportColumns(), exportRows()));
   toast('CSV downloaded');
 });
 

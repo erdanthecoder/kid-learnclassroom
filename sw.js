@@ -11,6 +11,7 @@ const SHELL = [
   'assets/js/money.js',
   'assets/js/cloud.js',
   'assets/js/currencies.js',
+  'assets/js/sheet.js',
   'assets/js/config.js',
   'assets/icon.svg',
   'assets/bg-mountains.svg',
